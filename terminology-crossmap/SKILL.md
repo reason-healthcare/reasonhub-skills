@@ -8,6 +8,8 @@ description: >
   semantic meaning, or build a SNOMED-based ValueSet from a non-SNOMED starting
   point. Always propose this when a user asks about relationships or "what is
   related to X" and the code is not already in SNOMED.
+license: MIT
+compatibility: Requires ReasonHub MCP server. Sign up at reasonhub.app.
 ---
 
 # Terminology Crossmap → SNOMED

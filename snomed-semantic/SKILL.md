@@ -9,6 +9,8 @@ description: >
   caused by bacteria", "subtypes of hypertension", "symptoms of X",
   "complications of X", or any query that involves clinical relationships
   between concepts rather than simple text search.
+license: MIT
+compatibility: Requires ReasonHub MCP server. Sign up at reasonhub.app.
 ---
 
 # SNOMED Semantic Query

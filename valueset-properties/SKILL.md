@@ -7,6 +7,8 @@ description: >
   ICD-10-CM (parent hierarchy), and UCUM (physical quantity). Use when the
   user wants to define a ValueSet by clinical criteria rather than enumerating
   codes manually, or when they ask "give me all X codes" for a code system.
+license: MIT
+compatibility: Requires ReasonHub MCP server. Sign up at reasonhub.app.
 ---
 
 # ValueSet from Code System Properties
