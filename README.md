@@ -54,75 +54,126 @@ GitHub Copilot — see **[INSTALL.md](./INSTALL.md)**.
 ### `reasonhub-snomed-semantic`
 
 **Build a ValueSet of all bacterial respiratory infections**
-> Find all SNOMED disorders whose causative agent is a bacterium (`409822003`)
-> AND whose finding site is the respiratory tract (`321667001`). Useful for
-> antibiogram reporting, infection control dashboards, or CDS rules.
+
+```
+Find all SNOMED disorders whose causative agent is a bacterium (409822003)
+AND whose finding site is the respiratory tract (321667001). Useful for
+antibiogram reporting, infection control dashboards, or CDS rules.
+```
 
 **Find all morphologically-defined cardiac conditions**
-> Look up a known cardiac disorder to discover its attribute typeIds, then
-> filter by `associated morphology = infarct (55641003)` to find all
-> infarct-type conditions of the heart — myocardial infarction, papillary
-> muscle infarction, right ventricular infarction, and their subtypes.
+
+```
+Look up a known cardiac disorder to discover its attribute typeIds, then
+filter by associated morphology = infarct (55641003) to find all
+infarct-type conditions of the heart — myocardial infarction, papillary
+muscle infarction, right ventricular infarction, and their subtypes.
+```
 
 **Explore the clinical findings of hypertension**
-> Hypertension is a primitive concept (`sufficientlyDefined=false`), so
-> `associated with` returns sparse results. The skill pivots to finding site
-> (`363698007 = 51840005` Systemic circulatory system) to return all
-> cardiovascular findings, then narrows with `concept is-a 404684003`
-> (Clinical finding).
+
+```
+Hypertension is a primitive concept (sufficientlyDefined=false), so
+associated with returns sparse results. The skill pivots to finding site
+(363698007 = 51840005 Systemic circulatory system) to return all
+cardiovascular findings, then narrows with concept is-a 404684003
+(Clinical finding).
+```
 
 **Enumerate all subtypes of type 2 diabetes for a quality measure**
-> `concept is-a 44054006` (Type 2 diabetes mellitus) returns the full
-> descendant hierarchy — essential for building exhaustive denominator
-> or numerator criteria in eCQMs.
+
+```
+concept is-a 44054006 (Type 2 diabetes mellitus) returns the full
+descendant hierarchy — essential for building exhaustive denominator
+or numerator criteria in eCQMs.
+```
 
 ---
 
 ### `reasonhub-terminology-crossmap`
 
 **ICD-10 encounter data → SNOMED → procedure ValueSet**
-> A claims dataset has `I25.10` (Atherosclerotic heart disease). Map to
-> SNOMED `53741008` (Coronary arteriosclerosis), extract its finding site
-> (`181294004` Coronary artery), then build a ValueSet of all SNOMED
-> procedures whose procedure site is that artery — PCI, CABG, coronary
-> angiography, stent placement.
+
+```
+A claims dataset has I25.10 (Atherosclerotic heart disease). Map to
+SNOMED 53741008 (Coronary arteriosclerosis), extract its finding site
+(181294004 Coronary artery), then build a ValueSet of all SNOMED
+procedures whose procedure site is that artery — PCI, CABG, coronary
+angiography, stent placement.
+```
 
 **RxNorm drug → SNOMED → disorders it causes**
-> RxNorm `1191` (Aspirin SCD). Strip to ingredient, map to SNOMED substance
-> `387458008`, then filter disorders by `causative agent = 387458008` to
-> find conditions attributed to aspirin — GI haemorrhage, Reye syndrome,
-> aspirin-exacerbated respiratory disease.
+
+```
+RxNorm 1191 (Aspirin SCD). Strip to ingredient, map to SNOMED substance
+387458008, then filter disorders by causative agent = 387458008 to
+find conditions attributed to aspirin — GI haemorrhage, Reye syndrome,
+aspirin-exacerbated respiratory disease.
+```
 
 **LOINC panel → SNOMED → related observations**
-> LOINC `24323-8` (Comprehensive metabolic panel). Look up the LOINC
-> `panel-parent` to get the component codes, crossmap the analyte names
-> to SNOMED observable entities, then explore what other observations share
-> the same `COMPONENT` or `SYSTEM` Part codes.
+
+```
+LOINC 24323-8 (Comprehensive metabolic panel). Look up the LOINC
+panel-parent to get the component codes, crossmap the analyte names
+to SNOMED observable entities, then explore what other observations share
+the same COMPONENT or SYSTEM Part codes.
+```
 
 ---
 
 ### `reasonhub-valueset-properties`
 
 **All active orderable quantitative hematology and chemistry LOINC codes**
-> `CLASS in CHEM,HEM/BC` + `STATUS=ACTIVE` + `ORDER_OBS in Order,Both`
-> + `SCALE_TYP=LP7753-9` (Qn). Suitable for lab order catalog ValueSets
-> used in CPOE systems.
+
+```json
+{
+  "filter": [
+    { "property": "CLASS",     "op": "in", "value": "CHEM,HEM/BC" },
+    { "property": "STATUS",    "op": "=",  "value": "ACTIVE" },
+    { "property": "ORDER_OBS", "op": "in", "value": "Order,Both" },
+    { "property": "SCALE_TYP", "op": "=",  "value": "LP7753-9" }
+  ]
+}
+```
 
 **All oral solid generic clinical drugs in RxNorm**
-> `TTY=SCD` + `has_doseformgroup=316945` (Oral Solid Dosage Form Group).
-> Add `has_ingredient=<RxCUI>` to scope to a specific drug class —
-> e.g., all oral metformin formulations for a diabetes formulary.
+
+```json
+{
+  "filter": [
+    { "property": "TTY",              "op": "=", "value": "SCD" },
+    { "property": "has_doseformgroup", "op": "=", "value": "316945" }
+  ]
+}
+```
 
 **A cross-system ValueSet spanning ICD-10 and SNOMED for CDS**
-> Include `parent is-a E11` (ICD-10 type 2 DM) alongside
-> `concept is-a 44054006` (SNOMED type 2 DM) in a single ValueSet compose.
-> Used when a CDS rule must fire on both billing codes and clinical
-> terminologies in the same patient record.
+
+```json
+{
+  "compose": {
+    "include": [
+      {
+        "system": "http://hl7.org/fhir/sid/icd-10-cm",
+        "filter": [{ "property": "parent",  "op": "is-a", "value": "E11" }]
+      },
+      {
+        "system": "http://snomed.info/sct",
+        "filter": [{ "property": "concept", "op": "is-a", "value": "44054006" }]
+      }
+    ]
+  }
+}
+```
 
 **UCUM units appropriate for a glucose concentration observation**
-> After expanding a LOINC glucose ValueSet, call `codesystem_lookup` on any
-> result to read its `EXAMPLE_UCUM_UNITS` property, then verify composed
-> expressions like `mg/dL` and `mmol/L` via `codesystem_verify_code`.
+
+```
+After expanding a LOINC glucose ValueSet, call codesystem_lookup on any
+result to read its EXAMPLE_UCUM_UNITS property, then verify composed
+expressions like mg/dL and mmol/L via codesystem_verify_code.
+```
 
 ---
 
