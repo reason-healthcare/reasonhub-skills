@@ -1,5 +1,5 @@
 ---
-name: snomed-semantic
+name: reasonhub-snomed-semantic
 description: >
   Use SNOMED CT's semantic attribute relationships to answer clinical questions.
   Finds concepts by relationship attribute (finding site, causative agent,

@@ -1,5 +1,5 @@
 ---
-name: terminology-crossmap
+name: reasonhub-terminology-crossmap
 description: >
   Map a code from any clinical terminology (ICD-10-CM, LOINC, RxNorm) to its
   SNOMED CT equivalent in order to unlock SNOMED's rich semantic attribute

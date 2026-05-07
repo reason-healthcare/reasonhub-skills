@@ -34,9 +34,9 @@ terminology tools the skills call (`search_snomed`, `codesystem_lookup`,
 
 | Skill | Description |
 |---|---|
-| [`snomed-semantic`](./snomed-semantic/SKILL.md) | Query SNOMED CT using attribute relationships (finding site, causative agent, associated morphology, procedure site) and IS-A hierarchy. Includes clinical question translation: symptoms, complications, subtypes. |
-| [`terminology-crossmap`](./terminology-crossmap/SKILL.md) | Map a code from ICD-10-CM, LOINC, or RxNorm to its SNOMED CT equivalent to unlock SNOMED's richer semantic model. |
-| [`valueset-properties`](./valueset-properties/SKILL.md) | Build property-filtered ValueSets for all five code systems (SNOMED CT, LOINC, RxNorm, ICD-10-CM, UCUM) with clinical examples and a debugging guide. |
+| [`reasonhub-snomed-semantic`](./reasonhub-snomed-semantic/SKILL.md) | Query SNOMED CT using attribute relationships (finding site, causative agent, associated morphology, procedure site) and IS-A hierarchy. Includes clinical question translation: symptoms, complications, subtypes. |
+| [`reasonhub-terminology-crossmap`](./reasonhub-terminology-crossmap/SKILL.md) | Map a code from ICD-10-CM, LOINC, or RxNorm to its SNOMED CT equivalent to unlock SNOMED's richer semantic model. |
+| [`reasonhub-valueset-properties`](./reasonhub-valueset-properties/SKILL.md) | Build property-filtered ValueSets for all five code systems (SNOMED CT, LOINC, RxNorm, ICD-10-CM, UCUM) with clinical examples and a debugging guide. |
 
 ## Installation
 
@@ -60,9 +60,9 @@ git clone https://github.com/reason-healthcare/reasonhub-skills ~/reasonhub-skil
 
 # Symlink individual skills (user-level)
 mkdir -p ~/.claude/skills
-ln -s ~/reasonhub-skills/snomed-semantic       ~/.claude/skills/snomed-semantic
-ln -s ~/reasonhub-skills/terminology-crossmap  ~/.claude/skills/terminology-crossmap
-ln -s ~/reasonhub-skills/valueset-properties   ~/.claude/skills/valueset-properties
+ln -s ~/reasonhub-skills/reasonhub-snomed-semantic       ~/.claude/skills/reasonhub-snomed-semantic
+ln -s ~/reasonhub-skills/reasonhub-terminology-crossmap  ~/.claude/skills/reasonhub-terminology-crossmap
+ln -s ~/reasonhub-skills/reasonhub-valueset-properties   ~/.claude/skills/reasonhub-valueset-properties
 ```
 
 MCP config goes in `~/.claude/mcp.json` (user-level) or `.mcp.json` in your
@@ -149,19 +149,19 @@ curl -fsSL .../install.sh | sh -s -- --pi
 ## Quick Examples
 
 **"Find all SNOMED codes for disorders of the kidney"**
-> Skill: `snomed-semantic`
+> Skill: `reasonhub-snomed-semantic`
 > → searches for kidney structure, filters by finding site attribute
 
 **"Map ICD-10 I21.9 to SNOMED and find related procedures"**
-> Skill: `terminology-crossmap` → `snomed-semantic`
+> Skill: `reasonhub-terminology-crossmap` → `reasonhub-snomed-semantic`
 > → looks up AMI, finds SNOMED equivalent, queries procedure site
 
 **"Give me all active orderable LOINC chemistry codes"**
-> Skill: `valueset-properties`
+> Skill: `reasonhub-valueset-properties`
 > → `CLASS=CHEM`, `STATUS=ACTIVE`, `ORDER_OBS=Order,Both`
 
 **"What are the clinical findings associated with hypertension?"**
-> Skill: `snomed-semantic`
+> Skill: `reasonhub-snomed-semantic`
 > → tries `associated with` filter, pivots to finding site when sparse
 
 ## License

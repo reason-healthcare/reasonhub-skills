@@ -7,7 +7,7 @@ set -e
 
 REPO="https://github.com/reason-healthcare/reasonhub-skills"
 RAW="https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main"
-SKILLS="snomed-semantic terminology-crossmap valueset-properties"
+SKILLS="reasonhub-snomed-semantic reasonhub-terminology-crossmap reasonhub-valueset-properties"
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 

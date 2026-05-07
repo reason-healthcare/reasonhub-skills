@@ -18,11 +18,11 @@ reasonhub-skills/
 ├── DEVELOPER.md                 # This file
 ├── LICENSE
 ├── install.sh                   # Multi-harness installer
-├── snomed-semantic/
+├── reasonhub-snomed-semantic/
 │   └── SKILL.md
-├── terminology-crossmap/
+├── reasonhub-terminology-crossmap/
 │   └── SKILL.md
-└── valueset-properties/
+└── reasonhub-valueset-properties/
     └── SKILL.md
 ```
 
@@ -93,7 +93,7 @@ Skills call ReasonHub MCP tools directly. To test a skill:
 2. Open an agent session and explicitly load the skill:
 
    ```
-   /skill:snomed-semantic
+   /skill:reasonhub-snomed-semantic
    ```
 
 3. Run through the worked examples in the skill's `## Examples` section and
@@ -139,7 +139,7 @@ changes are merged to `main`:
    submission flow on the site).
 2. Submit `reason-healthcare/reasonhub-skills` as the source.
 3. Individual skills in the repo will be listed at their own pages, e.g.
-   `skills.sh/reason-healthcare/reasonhub-skills/snomed-semantic`.
+   `skills.sh/reason-healthcare/reasonhub-skills/reasonhub-snomed-semantic`.
 
 Users can then install via:
 

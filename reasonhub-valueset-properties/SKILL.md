@@ -1,5 +1,5 @@
 ---
-name: valueset-properties
+name: reasonhub-valueset-properties
 description: >
   Build clinically meaningful ValueSets using the property filter system of
   each code system: SNOMED CT (attribute relationships + hierarchy), LOINC
