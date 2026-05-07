@@ -1,7 +1,5 @@
 # reasonhub-skills
 
-[![skills.sh](https://skills.sh/b/reason-healthcare/reasonhub-skills)](https://skills.sh/reason-healthcare/reasonhub-skills)
-
 Agent skills for clinical terminology querying — search SNOMED CT's semantic
 relationships, crossmap codes across ICD-10, LOINC, and RxNorm, and build
 property-filtered ValueSets, all from natural language clinical questions.
