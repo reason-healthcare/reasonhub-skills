@@ -132,19 +132,21 @@ concept to discover the actual attributes in use for a given clinical domain.
 
 ## Submitting to skills.sh
 
-[skills.sh](https://skills.sh) is the Agent Skills directory. Once your
-changes are merged to `main`:
-
-1. Visit [skills.sh/submit](https://skills.sh/submit) (or the equivalent
-   submission flow on the site).
-2. Submit `reason-healthcare/reasonhub-skills` as the source.
-3. Individual skills in the repo will be listed at their own pages, e.g.
-   `skills.sh/reason-healthcare/reasonhub-skills/reasonhub-snomed-semantic`.
-
-Users can then install via:
+[skills.sh](https://skills.sh) is the Agent Skills directory, powered by
+`npx skills`. Once your changes are merged to `main`, submit the repo:
 
 ```bash
-pi add github:reason-healthcare/reasonhub-skills
+npx skills add reason-healthcare/reasonhub-skills
+```
+
+Running this from a project directory registers the source with skills.sh
+telemetry. The full collection appears at:
+`https://skills.sh/reason-healthcare/reasonhub-skills`
+
+Add the install badge to the README:
+
+```markdown
+[![skills.sh](https://skills.sh/b/reason-healthcare/reasonhub-skills)](https://skills.sh/reason-healthcare/reasonhub-skills)
 ```
 
 ## Pull Request Checklist
