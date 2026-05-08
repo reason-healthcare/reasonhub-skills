@@ -257,12 +257,41 @@ members. To get members, expand with a `panel-parent` filter:
 }
 ```
 
-Expand this with `reasonhub-skills expand` to get the full member list. Then
-call `codesystem_lookup` on each member to extract its `COMPONENT` and
-`SYSTEM` LP codes for downstream filtering.
+Expand this with `reasonhub-skills expand` to get the full member list.
 
-> **Do not scrape loinc.org.** All panel structure and LP codes are available
-> through the API. Web scraping is fragile, slow, and unnecessary.
+The result includes the panel code itself and any nested panel codes — filter
+to unique codes before processing. Then call `codesystem_lookup` on each
+member to get its `COMPONENT` and `SYSTEM` LP codes. **Do this via the
+API — do not fetch individual loinc.org/CODE pages to extract LP codes.**
+
+```
+codesystem_lookup("2345-7", "http://loinc.org")
+# COMPONENT = LP14635-4  ← use this in COMPONENT filter
+# SYSTEM    = LP7576-4   ← use this in SYSTEM filter
+```
+
+To find sibling observations sharing the same `COMPONENT`, use
+`reasonhub-skills expand` with a `COMPONENT = <LP_CODE>` filter —
+**not `search_loinc`**. `search_loinc` returns semantically similar
+observations, not structurally related ones sharing the same LOINC axis.
+
+```json
+{
+  "resourceType": "ValueSet",
+  "compose": {"include": [{
+    "system": "http://loinc.org",
+    "version": "<version>",
+    "filter": [
+      { "property": "COMPONENT", "op": "=", "value": "<LP_CODE_FROM_LOOKUP>" },
+      { "property": "STATUS",    "op": "=", "value": "ACTIVE" }
+    ]
+  }]}
+}
+```
+
+> **⛔ Do not scrape loinc.org** pages to get panel structure or LP codes.
+> Do not use `search_loinc` for sibling finding by COMPONENT or SYSTEM axis.
+> Both are available through structured API calls.
 
 ---
 

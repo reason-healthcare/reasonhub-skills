@@ -66,9 +66,9 @@ alternatives. Immediately run `reasonhub-skills expand` instead:**
 echo '{ ... paste ValueSet JSON here ... }' | reasonhub-skills expand
 ```
 
-> **Heredoc (`<< 'EOF'`) does not work** when called inside `exec` or
-> `zsh -lc "..."` — the shell eats the heredoc and stdin arrives empty,
-> printing help text. Use `echo '...' |` or `printf '%s\n' '...' |` instead.
+> **Heredoc (`<< 'EOF'`) and `printf '%s\n' '...' |` do not work reliably**
+> when called inside `exec` or `zsh -lc "..."` — stdin arrives empty and
+> the CLI prints help text. Use `echo '...' |` instead.
 
 If the CLI is not installed:
 ```bash
