@@ -45,52 +45,101 @@ Proactively suggest crossmapping to SNOMED when:
 
 ## Workflow
 
-### Phase 1 — Get the source concept's display
+### Phase 1 — Look up the source code
 
 ```
 codesystem_lookup(code="<source_code>", system="<source_system>")
 ```
 
-Extract the `display` (preferred term). This is the search query for SNOMED.
+Extract the `display`. This is the search query for Phase 2.
 
-**Example:**
 ```
-codesystem_lookup(code="I21.9", system="http://hl7.org/fhir/sid/icd-10-cm")
-# display: "Acute myocardial infarction, unspecified"
+codesystem_lookup("I25.10", "http://hl7.org/fhir/sid/icd-10-cm")
+# display: "Atherosclerotic heart disease of native coronary artery
+#            without angina pectoris"
 ```
 
 ### Phase 2 — Search SNOMED for the equivalent
 
-Use the display term (or a cleaned version of it) as the search query:
+Run this **in parallel with Phase 1** if the source display is already known.
 
 ```
-search_snomed(query="acute myocardial infarction", top_k=10)
+search_snomed(query="coronary arteriosclerosis disorder", top_k=5)
 ```
 
 **Selection heuristics:**
-- Prefer concepts whose semantic tag matches the source system's domain:
-  - ICD-10 diagnosis → `(disorder)` or `(finding)`
-  - LOINC lab test → `(observable entity)` or `(procedure)`
-  - RxNorm ingredient → `(substance)` or `(product)`
-- Prefer `sufficientlyDefined = true` (richer attributes available)
-- Prefer the most specific match (avoid selecting a parent when a child fits)
-- When ambiguous, present 2–3 candidates and ask the user to confirm
+- ICD-10 diagnosis → prefer `(disorder)` semantic tag
+- LOINC observation → prefer `(observable entity)`
+- RxNorm ingredient → prefer `(substance)`
+- Prefer `sufficientlyDefined = true` (richer attributes)
+- When ambiguous, present 2–3 candidates and ask the user
 
-### Phase 3 — Confirm the match
+### Phase 3 — Confirm the match and extract the pivot
 
 ```
-codesystem_lookup(code="<snomed_candidate>", system="http://snomed.info/sct")
+codesystem_lookup(code="53741008", system="http://snomed.info/sct")
 ```
 
-Check:
-- `display` semantically matches the source concept
-- `inactive = false`
-- `sufficientlyDefined` — note if `false` (primitive concept, fewer attributes)
-- Review `parent` properties to confirm it sits in the expected hierarchy
+Check `inactive = false` and `display` matches. Then **read the finding site
+attribute** (`363698007`) directly from the response — this is the body
+structure concept ID you will use as the procedure site filter value in
+Phase 4.
 
-### Phase 4 — Explore via SNOMED relationships
+```
+# Coronary arteriosclerosis (53741008)
+# 363698007 (Finding site) = 41801008 (Coronary artery structure)  ← pivot
+```
 
-Now apply the `snomed-semantic` skill using the confirmed SNOMED concept ID.
+> **This pivot step is the bridge between the diagnosis code and the
+> procedure ValueSet.** The disorder’s finding site becomes the procedure’s
+> site filter value.
+
+### Phase 4 — Discover the procedure site attribute
+
+Before building the filter, look up one known representative procedure from
+the target domain to confirm which attribute it uses. Run this **in parallel
+with Phase 3** if you already have a candidate procedure in mind.
+
+```
+codesystem_lookup("415070008", "http://snomed.info/sct")  # PCI
+# 363704007 (Procedure site - Direct)   = 41801008  ← present
+# 405813007 (Procedure site - Indirect) = 41801008  ← also present
+
+codesystem_lookup("232717009", "http://snomed.info/sct")  # CABG
+# 363704007 (Procedure site - Direct)   = — not present
+# 405813007 (Procedure site - Indirect) = 41801008  ← only Indirect
+```
+
+**Rule:** use `405813007` (Indirect) when it appears on all representative
+concepts. `363704007` (Direct) alone will miss procedures coded only to
+Indirect. When unsure, look up two or three known procedures and check.
+
+### Phase 5 — Build the ValueSet filter
+
+Use the confirmed site attribute + pivot concept ID + procedure hierarchy:
+
+```json
+{
+  "resourceType": "ValueSet",
+  "name": "CoronaryArteryProcedures",
+  "title": "Procedures on the Coronary Artery",
+  "status": "draft",
+  "compose": {
+    "include": [{
+      "system": "http://snomed.info/sct",
+      "version": "<from list_available_codesystem_versions>",
+      "filter": [
+        { "property": "405813007", "op": "=",   "value": "41801008" },
+        { "property": "concept",   "op": "is-a", "value": "71388002" },
+        { "property": "inactive",  "op": "=",   "value": "false" }
+      ]
+    }]
+  }
+}
+```
+
+> `71388002` is the SNOMED root for Procedure. Always include it to avoid
+> non-procedure concepts that may also encode a procedure site attribute.
 
 ---
 
@@ -194,43 +243,65 @@ When `search_snomed` returns multiple plausible matches:
 
 ---
 
-## Full Example: ICD-10 → SNOMED → Semantic Query
+## Full Example: I25.10 → SNOMED → Coronary Procedure ValueSet
 
-**User request:** "I have ICD-10 code J18.9. Find all related procedures."
+**User request:** "We have I25.10 in our encounter data and need a ValueSet
+of coronary procedures — PCI, CABG, angiography, stent placement."
 
-**Step 1 — Look up ICD-10 display:**
+**Phase 1 — Look up ICD-10 display:**
 ```
-codesystem_lookup("J18.9", "http://hl7.org/fhir/sid/icd-10-cm")
-# display: "Pneumonia, unspecified organism"
-```
-
-**Step 2 — Find SNOMED equivalent:**
-```
-search_snomed("pneumonia disorder", top_k=5)
-# Top result: 233604007 "Pneumonia" (disorder)
+codesystem_lookup("I25.10", "http://hl7.org/fhir/sid/icd-10-cm")
+# display: "Atherosclerotic heart disease of native coronary artery
+#            without angina pectoris"
 ```
 
-**Step 3 — Confirm:**
+**Phase 2 — Search SNOMED (run in parallel with Phase 1 if display is known):**
 ```
-codesystem_lookup("233604007", "http://snomed.info/sct")
-# inactive=false, sufficientlyDefined=true
-# finding site: 39607008 (Lung structure)
-```
-
-**Step 4 — Find related procedures (all procedures on lungs):**
-```
-valueset_expand({
-  compose: { include: [{
-    system: "http://snomed.info/sct",
-    filter: [
-      { property: "363704007", op: "=", value: "39607008" },
-      { property: "concept",   op: "is-a", value: "71388002" }
-    ]
-  }]}
-})
+search_snomed("coronary arteriosclerosis disorder", top_k=5)
+# Top match: 53741008 "Coronary arteriosclerosis" (disorder)
 ```
 
-Returns: bronchoscopy, chest drain, lung biopsy, mechanical ventilation, etc.
+**Phase 3 — Confirm and extract pivot (run in parallel with a known procedure lookup):**
+```
+codesystem_lookup("53741008", "http://snomed.info/sct")
+# sufficientlyDefined = true
+# 363698007 (Finding site) = 41801008 (Coronary artery structure)  ← pivot
+```
+
+**Phase 4 — Discover procedure site attribute:**
+```
+# Run in parallel with Phase 3
+codesystem_lookup("415070008", "http://snomed.info/sct")  # PCI
+# 363704007 (Direct)   = 41801008  ← present
+# 405813007 (Indirect) = 41801008  ← present
+
+codesystem_lookup("232717009", "http://snomed.info/sct")  # CABG
+# 363704007 (Direct)   = — not present
+# 405813007 (Indirect) = 41801008  ← only Indirect
+
+# → use 405813007 — it covers both PCI and CABG
+```
+
+**Phase 5 — ValueSet output:**
+```json
+{
+  "resourceType": "ValueSet",
+  "name": "CoronaryArteryProcedures",
+  "title": "Procedures on the Coronary Artery (SNOMED CT)",
+  "status": "draft",
+  "compose": {
+    "include": [{
+      "system": "http://snomed.info/sct",
+      "version": "http://snomed.info/sct/731000124108/version/20250901",
+      "filter": [
+        { "property": "405813007", "op": "=",   "value": "41801008" },
+        { "property": "concept",   "op": "is-a", "value": "71388002" },
+        { "property": "inactive",  "op": "=",   "value": "false" }
+      ]
+    }]
+  }
+}
+```
 
 ---
 
@@ -238,3 +309,34 @@ Returns: bronchoscopy, chest drain, lung biopsy, mechanical ventilation, etc.
 
 Once you have the SNOMED concept ID, follow the `snomed-semantic` skill for
 the full set of relationship query patterns.
+
+---
+
+## Output
+
+Every crossmap delivers two things.
+
+### 1. Crossmap provenance (always)
+
+Show the mapping chain so the user can verify it:
+
+| Step | Code | System | Display |
+|---|---|---|---|
+| Source | `I25.10` | ICD-10-CM | Atherosclerotic heart disease of native coronary artery without angina pectoris |
+| SNOMED match | `53741008` | SNOMED CT | Coronary arteriosclerosis |
+| Pivot (finding site) | `41801008` | SNOMED CT | Coronary artery structure |
+
+### 2. FHIR ValueSet JSON + optional expansion
+
+Deliver the complete `ValueSet` resource. Then ask:
+
+> "Would you like me to expand this to preview the matching procedure codes?
+> I can show results as a **markdown table** or **CSV**."
+
+**CSV format:**
+```csv
+code,display
+415070008,"Percutaneous coronary intervention"
+232717009,"Coronary artery bypass graft"
+33367005,"Angiography of coronary artery"
+```
