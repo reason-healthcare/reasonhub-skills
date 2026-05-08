@@ -114,6 +114,21 @@ def _parse_count(args):
 # ── commands ───────────────────────────────────────────────────────────────────
 
 def cmd_expand(args):
+    if not args or args[0] in ("-h", "--help"):
+        print("""Usage: reasonhub-skills expand [--count N]
+
+Expand a FHIR ValueSet by piping JSON to stdin.
+
+Options:
+  --count N   Request up to N codes from the server (default: server default)
+
+Examples:
+  echo '{...}' | reasonhub-skills expand
+  reasonhub-skills expand < my-valueset.json
+  reasonhub-skills expand --count 500 < my-valueset.json
+""")
+        return
+
     count, _ = _parse_count(args)
 
     raw = sys.stdin.buffer.read()
