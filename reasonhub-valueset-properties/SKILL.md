@@ -75,8 +75,11 @@ curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/
 ```
 Then re-run the expand command above.
 
-The CLI resolves credentials internally. The agent never reads env vars
-or config files directly.
+> **⛔ Do not read credentials yourself.** Do not read `~/.reasonhub/config.toml`,
+> `.reasonhub/config.toml`, `~/.pi/agent/mcp.json`, or any env var to extract
+> a token and hand-roll a curl command. The `reasonhub-skills` CLI handles
+> credentials internally. If you find yourself writing `curl ... -H "Authorization:
+> Bearer ..."` with a token you read from a file, stop and use the CLI instead.
 
 ---
 

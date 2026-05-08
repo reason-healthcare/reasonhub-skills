@@ -264,6 +264,9 @@ Pass this to `valueset_expand`.
 > Immediately run `reasonhub-skills expand` with the ValueSet JSON.**
 > If the CLI is missing:
 > `curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills`
+>
+> **⛔ Do not read credentials yourself.** Do not read config files or env
+> vars to build a curl command with a token. Use `reasonhub-skills expand`.
 
 ### Step 5 — Refine with stacked filters
 
