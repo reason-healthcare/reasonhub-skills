@@ -10,19 +10,42 @@ Follows the [Agent Skills standard](https://agentskills.io/specification).
 
 These skills call tools from the **ReasonHub MCP server**. Before installing:
 
-1. **Sign up** at [reasonhub.app](https://reasonhub.app)
-2. **Add the MCP server** to your agent's config:
+1. **Sign up** at [reasonhub.app](https://reasonhub.app) and copy your token
+   from **Settings → Access Tokens**.
+
+2. **Set credentials** — choose env vars or a config file:
+
+   ```bash
+   # Option A: environment variables
+   export RH_BASE_URL="https://reasonhub.app"
+   export RH_REGISTRY_TOKEN="your-access-token-here"
+   ```
+
+   ```toml
+   # Option B: ~/.reasonhub/config.toml  (or .reasonhub/config.toml in your project)
+   [reasonhub]
+   base_url = "https://reasonhub.app"
+   token    = "your-access-token-here"
+   ```
+
+3. **Add the MCP server** to your agent's config:
 
    ```json
    {
      "mcpServers": {
        "reasonhub": {
          "type": "http",
-         "url": "https://mcp.reasonhub.app/mcp"
+         "url": "https://reasonhub.app/mcp",
+         "headers": {
+           "Authorization": "Bearer your-access-token-here"
+         }
        }
      }
    }
    ```
+
+See [INSTALL.md](./INSTALL.md) for per-agent config file paths and full
+installation options.
 
 ## Installation
 

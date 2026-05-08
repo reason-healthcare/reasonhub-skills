@@ -61,15 +61,38 @@ valueset: must be object / must be null / must match a schema in anyOf
 
 All of these will produce the same error. **Stop after one attempt.**
 
-**Instead, use the fallback workflow:**
+**Instead, use the curl fallback to call the FHIR API directly:**
 
-1. Use `search_snomed`, `search_loinc`, `search_rxnorm`, or `search_icd10`
-   to find representative codes directly.
-2. Use `codesystem_lookup` to inspect attributes and confirm the right codes.
-3. Use `codesystem_subsumes` to verify hierarchy relationships.
-4. Return the filter definition as a FHIR ValueSet JSON artifact for the
-   user to expand themselves — include the exact `compose.include` block
-   with `system`, `version`, and `filter` populated and ready to use.
+```bash
+bash << 'EXPAND'
+# Resolve credentials: env vars take precedence over config file
+_rh() { python3 -c "
+import sys, os
+try:
+    import tomllib
+except ImportError:
+    import tomli as tomllib
+key = sys.argv[1]
+for p in ['.reasonhub/config.toml', os.path.expanduser('~/.reasonhub/config.toml')]:
+    try:
+        d = tomllib.load(open(p,'rb')).get('reasonhub',{})
+        print(d.get(key,'')); exit()
+    except: pass
+" "$1" 2>/dev/null; }
+
+BASE="${RH_BASE_URL:-$(_rh base_url)}"
+TOKEN="${RH_REGISTRY_TOKEN:-$(_rh token)}"
+
+curl -s -X POST "${BASE}/api/fhir/-/ValueSet/\$expand" \
+  -H "Authorization: Bearer ${TOKEN}" \
+  -H "Content-Type: application/fhir+json" \
+  -d '{ ... paste ValueSet JSON here ... }'
+EXPAND
+```
+
+This bypasses the MCP layer entirely and calls the FHIR `$expand` operation
+directly. The ValueSet JSON is the same resource produced in step 1 of the
+Output section.
 
 ---
 

@@ -21,23 +21,81 @@ git clone https://github.com/reason-healthcare/reasonhub-skills ~/reasonhub-skil
 
 ---
 
+## Configuration
+
+These skills need two values: the ReasonHub base URL and an access token.
+Set them via environment variables or a config file.
+
+### Option A — Environment variables
+
+```bash
+export RH_BASE_URL="https://reasonhub.app"
+export RH_REGISTRY_TOKEN="your-access-token-here"
+```
+
+Add these to your shell profile (`~/.zshrc`, `~/.bashrc`, etc.) so they
+persist across sessions.
+
+### Option B — Config file
+
+Create either a user-level or project-level config file:
+
+```bash
+# User-level (applies to all projects)
+mkdir -p ~/.reasonhub
+cat > ~/.reasonhub/config.toml << 'EOF'
+[reasonhub]
+base_url = "https://reasonhub.app"
+token    = "your-access-token-here"
+EOF
+
+# Project-level (checked into .gitignore, applies to this project only)
+mkdir -p .reasonhub
+cat > .reasonhub/config.toml << 'EOF'
+[reasonhub]
+base_url = "https://reasonhub.app"
+token    = "your-access-token-here"
+EOF
+echo '.reasonhub/config.toml' >> .gitignore
+```
+
+**Precedence:** environment variables override config file values.
+Project-level config (`.reasonhub/config.toml`) takes precedence over
+user-level (`~/.reasonhub/config.toml`).
+
+### Endpoints derived from `RH_BASE_URL`
+
+| Purpose | URL |
+|---|---|
+| MCP server | `$RH_BASE_URL/mcp` |
+| Package registry | `$RH_BASE_URL/packages` |
+| FHIR API | `$RH_BASE_URL/api/fhir/-/` |
+
+### Get your access token
+
+Sign up at [reasonhub.app](https://reasonhub.app), then copy your token
+from **Settings → Access Tokens**.
+
+---
+
 ## MCP Configuration
 
-All agents need the ReasonHub MCP server configured. Sign up at
-[reasonhub.app](https://reasonhub.app) to get access, then add:
+All agents need the ReasonHub MCP server configured. Using the values from
+your config above:
 
 ```json
 {
   "mcpServers": {
     "reasonhub": {
       "type": "http",
-      "url": "https://mcp.reasonhub.app/mcp"
+      "url": "https://reasonhub.app/mcp",
+      "headers": {
+        "Authorization": "Bearer your-access-token-here"
+      }
     }
   }
 }
 ```
-
-The config file location varies by agent — see each section below.
 
 ---
 
