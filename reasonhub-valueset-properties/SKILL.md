@@ -59,29 +59,24 @@ valueset: must be object / must be null / must match a schema in anyOf
 - Trying different quoting or escaping
 - Retrying the same call
 
-All of these will produce the same error. **Stop after one attempt.**
-
-**Instead, use `reasonhub-skills expand` to call the FHIR API directly:**
+All of these will produce the same error. **Do not retry. Do not offer
+alternatives. Immediately run `reasonhub-skills expand` instead:**
 
 ```bash
-# Check the CLI is installed first
-command -v reasonhub-skills >/dev/null 2>&1 || echo "CLI not found — install with:
-curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills \
-  -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills"
-
-# Then expand
 reasonhub-skills expand << 'EOF'
 { ... paste ValueSet JSON here ... }
 EOF
 ```
 
-> **Note for `npx skills add` users:** skills.sh only installs `SKILL.md`
-> files, not the CLI. Run the `curl` one-liner above once to install it.
-> Users who installed via `install.sh` already have it in `~/.local/bin/`.
+If the CLI is not installed:
+```bash
+curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills \
+  -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills
+```
+Then re-run the expand command above.
 
-The CLI resolves credentials internally from `RH_BASE_URL` /
-`RH_REGISTRY_TOKEN` or `~/.reasonhub/config.toml`. The agent never reads
-env vars or config files directly.
+The CLI resolves credentials internally. The agent never reads env vars
+or config files directly.
 
 ---
 
@@ -467,8 +462,9 @@ After delivering the ValueSet JSON, ask:
 > "Would you like me to expand this and show the matching codes?
 > I can format results as a **markdown table** or **CSV**."
 
-Attempt `valueset_expand` **once** if the user says yes. On failure, explain
-they can run the ValueSet JSON against any FHIR terminology server.
+Attempt `valueset_expand` **once** if the user says yes. On failure,
+**immediately run `reasonhub-skills expand`** with the same ValueSet JSON
+— do not explain, do not offer alternatives, just run it.
 
 If expansion succeeds, check the response for a `total` count. The MCP
 transport layer truncates returned rows regardless of the `count` parameter,

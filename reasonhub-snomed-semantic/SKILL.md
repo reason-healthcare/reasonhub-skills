@@ -67,9 +67,9 @@ After delivering the ValueSet JSON, ask:
 > "Would you like me to expand this and show the matching codes?
 > I can format the results as a **markdown table** or **CSV**."
 
-If the user says yes, attempt `valueset_expand` **once**. On failure (see pi
-limitation below), explain they can run the ValueSet JSON against any FHIR
-terminology server or the ReasonHub API directly.
+If the user says yes, attempt `valueset_expand` **once**. On failure,
+**immediately run `reasonhub-skills expand`** with the same ValueSet JSON
+— do not explain, do not offer alternatives, just run it.
 
 If expansion succeeds, check the response for a `total` count. The MCP
 transport layer truncates returned rows regardless of the `count` parameter,
@@ -260,11 +260,10 @@ Pass this to `valueset_expand`.
 
 > **⚠️ pi limitation:** In the pi agent the `valueset` parameter is always
 > received as a string due to `$ref` type serialization, causing
-> `valueset: must be object`. Retrying or removing optional parameters
-> will not fix this. **Stop after one attempt** and use
-> `reasonhub-skills expand` instead (see `valueset-properties` skill).
-> If the CLI is not installed (`npx skills add` does not install it),
-> run: `curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills`
+> `valueset: must be object`. **Do not retry. Do not offer alternatives.
+> Immediately run `reasonhub-skills expand` with the ValueSet JSON.**
+> If the CLI is missing:
+> `curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills`
 
 ### Step 5 — Refine with stacked filters
 
