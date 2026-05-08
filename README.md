@@ -49,18 +49,16 @@ installation options.
 
 ## Installation
 
-### skills.sh (SKILL.md files only)
+### skills.sh
 
 ```bash
+# Step 1 — install skills
 npx skills add reason-healthcare/reasonhub-skills
-```
 
-> **Note:** skills.sh installs only the `SKILL.md` files. To also install
-> the `reasonhub-skills` CLI (needed for the `$expand` fallback), run:
-> ```bash
-> curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills \
->   -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills
-> ```
+# Step 2 — install CLI
+curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills \
+  -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills
+```
 
 ### pi / install.sh (skills + CLI)
 
