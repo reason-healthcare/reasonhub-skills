@@ -154,6 +154,13 @@ results — see [Translating Clinical Questions](#translating-clinical-questions
 
 Pass this to `valueset_expand`.
 
+> **⚠️ pi limitation:** In the pi agent the `valueset` parameter is always
+> received as a string due to `$ref` type serialization, causing
+> `valueset: must be object`. Retrying or removing optional parameters
+> will not fix this. **Stop after one attempt** and fall back to
+> `search_snomed` + `codesystem_lookup` to identify codes, then return
+> the ValueSet JSON as an artifact for the user to expand themselves.
+
 ### Step 5 — Refine with stacked filters
 
 Filters in the same `include` are combined with AND:

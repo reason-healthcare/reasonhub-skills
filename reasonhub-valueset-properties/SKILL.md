@@ -42,6 +42,35 @@ To see all supported filter properties for a specific system:
 codesystem_filter_properties(system="<system_url>")
 ```
 
+### ⚠️ Calling `valueset_expand` — known pi limitation
+
+The `valueset` parameter is typed as a `$ref` schema object. **In the pi
+agent, all `<parameter>` tag contents are serialized as strings**, so the
+MCP server always receives `valueset` as a JSON string rather than a JSON
+object. This causes the error:
+
+```
+valueset: must be object / must be null / must match a schema in anyOf
+```
+
+**This error cannot be fixed by:**
+- Reformatting the JSON (pretty-print vs compact)
+- Removing optional parameters like `count` or `offset`
+- Trying different quoting or escaping
+- Retrying the same call
+
+All of these will produce the same error. **Stop after one attempt.**
+
+**Instead, use the fallback workflow:**
+
+1. Use `search_snomed`, `search_loinc`, `search_rxnorm`, or `search_icd10`
+   to find representative codes directly.
+2. Use `codesystem_lookup` to inspect attributes and confirm the right codes.
+3. Use `codesystem_subsumes` to verify hierarchy relationships.
+4. Return the filter definition as a FHIR ValueSet JSON artifact for the
+   user to expand themselves — include the exact `compose.include` block
+   with `system`, `version`, and `filter` populated and ready to use.
+
 ---
 
 ## SNOMED CT — `http://snomed.info/sct`
