@@ -192,7 +192,24 @@ is available but less commonly needed.
 | `property` | `op` | `value` | Effect |
 |---|---|---|---|
 | `parent` | `is-a` | LOINC or LP code | Code + all descendants in component hierarchy |
-| `panel-parent` | `is-a` | LOINC code | Code + all panel/form descendants |
+| `panel-parent` | `=` | LOINC code | All codes that are direct members of that panel |
+
+> **`panel-parent` is exact match (`=`), not `is-a`.** Use `=` to get the
+> direct members of a specific panel. `codesystem_lookup` on the panel code
+> itself returns the panel’s own axes but NOT its members.
+
+### Getting LP codes for COMPONENT and SYSTEM filters
+
+Always read LP codes from `codesystem_lookup` — never guess them.
+
+```
+codesystem_lookup("2345-7", "http://loinc.org")
+# → COMPONENT property → LP14635-4 (Glucose)
+# → SYSTEM property    → LP7576-4  (Ser/Plas)
+```
+
+Using an incorrect LP code returns either 0 results or completely unrelated
+codes (a wrong GFR LP code returned Babesia concepts in testing).
 
 ### Common patterns
 
@@ -413,6 +430,50 @@ ValueSets can mix multiple code systems in one compose:
     ]
   }
 }
+```
+
+---
+
+## Scripting bulk expansions with `reasonhub-skills`
+
+When expanding many ValueSets in a loop (e.g., one per LOINC COMPONENT),
+call `reasonhub-skills expand` from Python via `subprocess.run` with
+`input=` — do **not** use a heredoc (`<< 'EOF'`) with nested subprocess
+calls; that closes stdin and causes `write_stdin failed: stdin is closed`.
+
+```python
+import json, subprocess
+
+def expand(filter_list, version="2.81", count=5):
+    vs = {
+        "resourceType": "ValueSet",
+        "compose": {"include": [{
+            "system": "http://loinc.org",
+            "version": version,
+            "filter": filter_list
+        }]}
+    }
+    p = subprocess.run(
+        ["reasonhub-skills", "expand", f"--count={count}"],
+        input=json.dumps(vs),
+        text=True, capture_output=True, timeout=60
+    )
+    return json.loads(p.stdout)
+
+# Call once per analyte — sequential is fine for small sets;
+# for 20+ analytes consider asyncio or ThreadPoolExecutor
+result = expand([{"property": "COMPONENT", "op": "=", "value": "LP14635-4"},
+                 {"property": "STATUS",    "op": "=", "value": "ACTIVE"}])
+print(result["expansion"]["total"])  # 137 active Glucose terms
+```
+
+**Deduplication:** LOINC expansions often return the same code twice with
+different display names (canonical vs. short name). Deduplicate by code
+before processing:
+```python
+seen = {}
+for c in result["expansion"].get("contains", []):
+    seen.setdefault(c["code"], c["display"])
 ```
 
 ---

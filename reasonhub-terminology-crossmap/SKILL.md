@@ -216,9 +216,44 @@ SNOMED:  33747003  "Blood glucose measurement"  (procedure)
          434912009  "Blood glucose concentration"  (observable entity)
 ```
 
-**LOINC-specific tip:** Use the LOINC `COMPONENT` Part code (e.g., LP14635-4
-for Glucose) as an additional search hint. The analyte name is usually the best
-SNOMED search term.
+### Getting the COMPONENT LP code for a LOINC observation
+
+The `COMPONENT` LP code (e.g., `LP14635-4` for Glucose) is returned directly
+by `codesystem_lookup` on any LOINC observation code. Read it from the
+response — do not guess it, do not search loinc.org:
+
+```
+codesystem_lookup("2345-7", "http://loinc.org")
+# COMPONENT = LP14635-4 (Glucose)   ← use this in COMPONENT filter
+# SYSTEM    = LP7576-4  (Ser/Plas)  ← use this in SYSTEM filter
+```
+
+### Getting the members of a LOINC panel
+
+`codesystem_lookup` on a panel code returns the panel’s own axes but NOT its
+members. To get members, expand with a `panel-parent` filter:
+
+```json
+{
+  "resourceType": "ValueSet",
+  "compose": {
+    "include": [{
+      "system": "http://loinc.org",
+      "version": "<version>",
+      "filter": [
+        { "property": "panel-parent", "op": "=", "value": "24323-8" }
+      ]
+    }]
+  }
+}
+```
+
+Expand this with `reasonhub-skills expand` to get the full member list. Then
+call `codesystem_lookup` on each member to extract its `COMPONENT` and
+`SYSTEM` LP codes for downstream filtering.
+
+> **Do not scrape loinc.org.** All panel structure and LP codes are available
+> through the API. Web scraping is fragile, slow, and unnecessary.
 
 ---
 
