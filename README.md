@@ -56,18 +56,17 @@ GitHub Copilot — see **[INSTALL.md](./INSTALL.md)**.
 **Build a ValueSet of all bacterial respiratory infections**
 
 ```
-Find all SNOMED disorders whose causative agent is a bacterium (409822003)
-AND whose finding site is the respiratory tract (321667001). Useful for
-antibiogram reporting, infection control dashboards, or CDS rules.
+Find all SNOMED disorders whose causative agent is a bacterium (409822003).
+Useful for antibiogram reporting, infection control dashboards, or CDS rules.
 ```
 
-**Find all morphologically-defined cardiac conditions**
+**Find every disorder caused by Staphylococcus aureus**
 
 ```
-Look up a known cardiac disorder to discover its attribute typeIds, then
-filter by associated morphology = infarct (55641003) to find all
-infarct-type conditions of the heart — myocardial infarction, papillary
-muscle infarction, right ventricular infarction, and their subtypes.
+I need all SNOMED disorders attributed to Staph aureus for an HAI
+dashboard — cellulitis, endocarditis, bacteremia, osteomyelitis, toxic
+shock syndrome, pneumonia. Use causative agent (246075003) =
+Staphylococcus aureus (3092008).
 ```
 
 **Build a multi-organ ischemic infarction ValueSet**

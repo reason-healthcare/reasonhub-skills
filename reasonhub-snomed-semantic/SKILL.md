@@ -44,8 +44,8 @@ concept to discover the actual attributes present (see
 | `363698007` | Finding site | Disorders, findings | Finding site = Heart structure (`80891009`) |
 | `246075003` | Causative agent | Disorders, infections | Causative agent = Staphylococcus (`65119002`) |
 | `116676008` | Associated morphology | Disorders, findings | Associated morphology = Infarct (`55641003`) |
-| `363704007` | Procedure site - Direct | Procedures | Procedure site = Kidney (`64033007`) |
-| `405813007` | Procedure site - Indirect | Procedures | Indirect site = Abdominal aorta |
+| `363704007` | Procedure site - Direct | Procedures | The structure directly incised/excised. Kidney biopsy uses `405813007` (Indirect) instead — look up first. |
+| `405813007` | Procedure site - Indirect | Procedures | The target organ reached through another structure. Often used where `363704007` might be expected. |
 | `370135005` | Pathological process | Disorders | Pathological process = Inflammatory (`441862004`) |
 | `47429007`  | Associated with | Findings, disorders | Associated with = Hypertension (`38341003`) |
 | `42752001`  | Due to | Disorders, findings | Due to = Type 2 diabetes mellitus (`44054006`) — links complications to causal condition |
@@ -62,8 +62,33 @@ attribute *points to* a target concept.
 concept --[363698007 Finding site]--> 80891009 Heart structure
 ```
 
-So `filter: property=363698007, op=, value=80891009` returns all concepts
+So `filter: property=363698007, op==, value=80891009` returns all concepts
 whose "finding site" attribute equals "Heart structure".
+
+### ⚠️ `=` is exact match, not subsumption
+
+The `=` operator matches only concepts that store **exactly** the specified
+concept ID as their attribute value. It does **not** apply subsumption to the
+value side — filtering by `363698007 = 321667001` (respiratory tract) will
+**not** automatically include concepts coded to `39607008` (lung structure) or
+`113255004` (lung parenchyma), even though both are subtypes of respiratory tract.
+
+SNOMED concepts are coded to specific anatomical sites, not to tidy ancestor
+concepts. For example:
+
+| Concept | `363698007` finding site coded to |
+|---|---|
+| Bacterial pneumonia (`53084003`) | `113255004` Structure of parenchyma of lung |
+| Bacterial respiratory infection (`312117008`) | `20139000` Structure of respiratory system |
+| Pneumoconiosis (`40122008`) | `39607008` Lung structure |
+
+A query for `363698007 = 321667001` (respiratory tract) matches **none** of
+these, because none are coded to that exact concept ID.
+
+**Practical rule:** always call `codesystem_lookup` on a few representative
+concepts in your target clinical domain first. Read the actual value stored for
+your attribute, then use that concept ID — or its closest common ancestor that
+concepts in that domain actually share — as your filter value.
 
 > **What you cannot do directly:** reverse lookups ("find all concepts that
 > hypertension causes"). SNOMED doesn't have a `has-symptom` attribute.
@@ -198,6 +223,8 @@ Filters in the same `include` are combined with AND:
 ```json
 { "property": "363704007", "op": "=", "value": "<body_structure_id>" }
 ```
+> Check with `codesystem_lookup` whether the procedure uses `363704007` (Direct)
+> or `405813007` (Indirect) — kidney biopsy, for example, uses Indirect.
 
 ### All subtypes of a condition (hierarchy)
 ```json
@@ -252,9 +279,9 @@ when attribute coverage is thin.
 
 | Clinical question | Best strategy | Coverage | Fallback |
 |---|---|---|---|
-| "All disorders of [body part]" | `363698007 = <body_structure>` + `is-a 64572001` | ✅ Good — most disorders have finding site | `is-a` on the body-site disorder parent |
+| "All disorders of [body part]" | `363698007 = <body_structure>` + `is-a 64572001` | ⚠️ `=` is exact match — look up a representative concept first to find the actual concept ID used. See note below. | `is-a` on the body-site disorder parent |
 | "All conditions caused by [agent]" | `246075003 = <organism/substance>` | ✅ Good — infections well-modelled | `is-a` on infectious disease hierarchy |
-| "All procedures on [body part]" | `363704007 = <body_structure>` + `is-a 71388002` | ✅ Good | `is-a` on the procedure hierarchy |
+| "All procedures on [body part]" | `363704007 = <body_structure>` + `is-a 71388002` | ⚠️ Look up first — many procedures use `405813007` (Indirect) instead of Direct | `is-a` on the procedure hierarchy |
 | "Subtypes of [condition]" | `concept is-a <condition>` | ✅ Always works | — |
 | "Symptoms / findings associated with [condition]" | `47429007 = <condition>` + `is-a 404684003` | ⚠️ Sparse — only explicitly encoded associations | See note below |
 | "Complications of [condition]" | `42752001 = <condition>` + `is-a 64572001` | ✅ Good — fully-defined complication concepts encode this | `47429007 = <condition>` (broader "associated with") |
@@ -367,8 +394,10 @@ codesystem_lookup("230690007")  # Cerebrovascular accident (stroke, CVA)
 5. Stack: add `363698007 = 83678007` (Cerebrum) to narrow to ischemic stroke subtypes only
 
 ### "All cardiac disorders"
-1. Search: `search_snomed("heart structure body structure")` → `80891009` Heart structure
-2. Filter: `363698007 = 80891009` inside `is-a 64572001` (Disorder)
+1. Lookup: `codesystem_lookup("22298006")` → confirms `363698007 = 74281007` (Myocardium) — note this is the myocardium, not heart. Check several concepts to find the broadest commonly-used site.
+2. Search: `search_snomed("heart structure body structure")` → `80891009` Heart structure
+3. Filter: `363698007 = 80891009` inside `is-a 64572001` (Disorder)
+   > `=` is exact match. Concepts coded to `74281007` (Myocardium) or `40527003` (Left ventricle) are missed. Use causative-agent or `is-a` as a broader net if coverage is thin.
 
 ### "All bacterial infections"
 1. Search: `search_snomed("bacteria organism")` → `409822003` Bacterium
@@ -379,8 +408,9 @@ codesystem_lookup("230690007")  # Cerebrovascular accident (stroke, CVA)
 2. Filter: `370135005 = 255426005`
 
 ### "All renal procedures"
-1. Search: `search_snomed("kidney structure body structure")` → `64033007`
-2. Filter: `363704007 = 64033007` inside `is-a 71388002` (Procedure)
+1. Lookup: `codesystem_lookup("7246002")` (Kidney biopsy) → `405813007 = 64033007` — uses **Indirect** site, not Direct
+2. Search: `search_snomed("kidney structure body structure")` → `64033007`
+3. Filter: try both `363704007 = 64033007` and `405813007 = 64033007`; use `is-a 71388002` (Procedure) in both
 
 ### eCQM denominator/numerator: all T2DM concepts (subtypes + complications)
 
