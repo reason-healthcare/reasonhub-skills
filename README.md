@@ -70,54 +70,54 @@ infarct-type conditions of the heart — myocardial infarction, papillary
 muscle infarction, right ventricular infarction, and their subtypes.
 ```
 
-**Explore the clinical findings of hypertension**
+**Build a multi-organ ischemic infarction ValueSet**
 
 ```
-Hypertension is a primitive concept (sufficientlyDefined=false), so
-associated with returns sparse results. The skill pivots to finding site
-(363698007 = 51840005 Systemic circulatory system) to return all
-cardiovascular findings, then narrows with concept is-a 404684003
-(Clinical finding).
+I need all infarct-type conditions across every organ for an ischemic
+event registry — MI, cerebral infarction, renal, pulmonary, mesenteric.
+Use associated morphology = infarct (55641003). Does generic stroke/CVA
+get included? If not, how do I get ischemic stroke subtypes only?
 ```
 
-**Enumerate all subtypes of type 2 diabetes for a quality measure**
+**Enumerate all T2DM concepts for a quality measure (subtypes + complications)**
 
 ```
-concept is-a 44054006 (Type 2 diabetes mellitus) returns the full
-descendant hierarchy — essential for building exhaustive denominator
-or numerator criteria in eCQMs.
+concept is-a 44054006 (Type 2 diabetes mellitus) returns T2DM and its
+clinical subtypes (T2DM in obese, insulin-treated T2DM, etc.). But T2DM
+complications (retinopathy, neuropathy, CAD) are NOT IS-A children of
+44054006 — they link back via attribute 42752001 (Due to). For exhaustive
+eCQM denominator or numerator criteria, compose a two-include ValueSet:
+one include for concept is-a 44054006 and a second for 42752001 = 44054006.
 ```
 
 ---
 
 ### `reasonhub-terminology-crossmap`
 
-**ICD-10 encounter data → SNOMED → procedure ValueSet**
+**Our claims data uses ICD-10 — how do I get the right SNOMED procedure codes?**
 
 ```
-A claims dataset has I25.10 (Atherosclerotic heart disease). Map to
-SNOMED 53741008 (Coronary arteriosclerosis), extract its finding site
-(181294004 Coronary artery), then build a ValueSet of all SNOMED
-procedures whose procedure site is that artery — PCI, CABG, coronary
-angiography, stent placement.
+We have I25.10 (Atherosclerotic heart disease) in our encounter data and need a
+ValueSet of coronary procedures to match against it — PCI, CABG, angiography,
+stent placement. Map the ICD-10 code to SNOMED and then pull all procedures on
+that artery.
 ```
 
-**RxNorm drug → SNOMED → disorders it causes**
+**Does aspirin cause GI bleeding? Show me every SNOMED disorder it’s linked to**
 
 ```
-RxNorm 1191 (Aspirin SCD). Strip to ingredient, map to SNOMED substance
-387458008, then filter disorders by causative agent = 387458008 to
-find conditions attributed to aspirin — GI haemorrhage, Reye syndrome,
-aspirin-exacerbated respiratory disease.
+I want to find all conditions attributed to aspirin in SNOMED — GI
+haemorrhage, Reye syndrome, aspirin-exacerbated respiratory disease.
+Start from RxNorm 1191 (Aspirin) and work through to SNOMED causative
+agent.
 ```
 
-**LOINC panel → SNOMED → related observations**
+**I have a LOINC panel code — what SNOMED observations are related to it?**
 
 ```
-LOINC 24323-8 (Comprehensive metabolic panel). Look up the LOINC
-panel-parent to get the component codes, crossmap the analyte names
-to SNOMED observable entities, then explore what other observations share
-the same COMPONENT or SYSTEM Part codes.
+We're using LOINC 24323-8 (Comprehensive metabolic panel) and want to understand
+what SNOMED observable entities correspond to its components.  Crossmap the
+analytes and show what other observations share the same COMPONENT or SYSTEM.
 ```
 
 ---

@@ -48,6 +48,7 @@ concept to discover the actual attributes present (see
 | `405813007` | Procedure site - Indirect | Procedures | Indirect site = Abdominal aorta |
 | `370135005` | Pathological process | Disorders | Pathological process = Inflammatory (`441862004`) |
 | `47429007`  | Associated with | Findings, disorders | Associated with = Hypertension (`38341003`) |
+| `42752001`  | Due to | Disorders, findings | Due to = Type 2 diabetes mellitus (`44054006`) — links complications to causal condition |
 | `363713009` | Interprets | Findings | Interprets = Blood pressure (`75367002`) |
 | `363714003` | Has interpretation | Findings | Has interpretation = Increased (`35105006`) |
 | `255234002` | After | Procedures | After = General anaesthesia |
@@ -196,9 +197,37 @@ Filters in the same `include` are combined with AND:
 { "property": "concept", "op": "is-a", "value": "<parent_concept_id>" }
 ```
 
+> ⚠️ **`is-a` captures clinical subtypes only, NOT complications.**
+> Concepts like "retinopathy due to T2DM" are NOT IS-A children of T2DM — they link
+> via `42752001` (Due to). Use the two-include compose pattern below for complete eCQM sets.
+
 ### Strict descendants only (exclude the parent itself)
 ```json
 { "property": "concept", "op": "descendent-of", "value": "<parent_concept_id>" }
+```
+
+### All disorders caused by / due to a condition
+```json
+{ "property": "42752001", "op": "=", "value": "<condition_id>" }
+```
+Captures complication concepts encoded with "Due to" (e.g., retinopathy/neuropathy due to T2DM).
+
+### Complete eCQM ValueSet: condition subtypes + their complications (two-include compose)
+```json
+{
+  "compose": {
+    "include": [
+      {
+        "system": "http://snomed.info/sct",
+        "filter": [{ "property": "concept",  "op": "is-a", "value": "<condition_id>" }]
+      },
+      {
+        "system": "http://snomed.info/sct",
+        "filter": [{ "property": "42752001", "op": "=",   "value": "<condition_id>" }]
+      }
+    ]
+  }
+}
 ```
 
 ### Active concepts only (add to any filter set)
@@ -221,7 +250,7 @@ when attribute coverage is thin.
 | "All procedures on [body part]" | `363704007 = <body_structure>` + `is-a 71388002` | ✅ Good | `is-a` on the procedure hierarchy |
 | "Subtypes of [condition]" | `concept is-a <condition>` | ✅ Always works | — |
 | "Symptoms / findings associated with [condition]" | `47429007 = <condition>` + `is-a 404684003` | ⚠️ Sparse — only explicitly encoded associations | See note below |
-| "Complications of [condition]" | `47429007 = <condition>` + `is-a 64572001` | ⚠️ Sparse | `is-a` on complication subtypes |
+| "Complications of [condition]" | `42752001 = <condition>` + `is-a 64572001` | ✅ Good — fully-defined complication concepts encode this | `47429007 = <condition>` (broader "associated with") |
 | "Risk factors for [condition]" | `47429007 = <condition>` + `is-a 229819007` | ⚠️ Sparse | Semantic search |
 
 ### The `associated with` pattern and its limits
@@ -264,28 +293,71 @@ modelled in SNOMED:
    context terms (`"hypertension complication"`, `"elevated blood pressure
    finding"`) to find individual concepts, then build an explicit list.
 
-### Worked example: "Findings associated with hypertension"
+### Worked example: "All infarct disorders" — discovering associated morphology
+
+This example shows how a single non-hierarchy attribute filter crosses every
+organ system to return a clinically precise, exhaustive result set — the
+capability that most distinguishes SNOMED from ICD-10 or text search.
 
 ```
-# Step 1 — confirm hypertension's attributes
-codesystem_lookup("38341003")  →  finding site = 51840005 (Systemic circulatory system)
-                                   sufficientlyDefined = false
+# Step 1 — look up a known, fully-defined infarct disorder to discover the attribute
+codesystem_lookup("22298006")  # Myocardial infarction
+  → 116676008 (Associated morphology) = 55641003 (Infarct)
+  → 363698007 (Finding site)          = 74281007 (Myocardium structure)
+  → sufficientlyDefined = true  ← fully defined, complete attribute set
 
-# Step 2 — try associated with filter (likely sparse)
-valueset_expand filter: 47429007 = 38341003 + is-a 404684003
+# Step 2 — confirm the morphology concept is active and correctly typed
+codesystem_lookup("55641003")  # Infarct
+  → semanticTag = "morphologic abnormality"  ← correct type for 116676008 values
+  → inactive = false
 
-# Step 3 — if sparse, pivot to finding site
-valueset_expand filter: 363698007 = 51840005 + is-a 404684003
-# → returns all clinical findings of the circulatory system
+# Step 3 — verify the same morphology value appears on a different organ
+codesystem_lookup("432504007")  # Cerebral infarction
+  → 116676008 (Associated morphology) = 55641003 (Infarct)  ← same value
+  → 363698007 (Finding site)          = 83678007 (Cerebrum)  ← different site
 
-# Step 4 — or subtypes of hypertension itself
-valueset_expand filter: concept is-a 38341003
-# → essential HTN, secondary HTN, hypertensive crisis, etc.
+# Step 4 — confirm generic stroke uses a DIFFERENT morphology
+codesystem_lookup("230690007")  # Cerebrovascular accident (stroke, CVA)
+  → 116676008 (Associated morphology) = 37782003 (Damage)  ← NOT Infarct
+  # → the filter will correctly exclude hemorrhagic stroke and generic CVA
 ```
+
+**Step 5 — expand all infarct disorders (cross-organ)**
+```json
+{
+  "filter": [
+    { "property": "116676008", "op": "=", "value": "55641003" },
+    { "property": "inactive",  "op": "=", "value": "false"    }
+  ]
+}
+```
+→ Myocardial infarction, cerebral infarction, renal infarction, pulmonary
+  infarction, splenic infarction, mesenteric infarction, bone infarction…
+  One filter. Every organ. No text matching.
+
+**Step 6 — narrow to ischemic stroke only (stacked filters)**
+```json
+{
+  "filter": [
+    { "property": "116676008", "op": "=", "value": "55641003" },
+    { "property": "363698007", "op": "=", "value": "83678007" },
+    { "property": "inactive",  "op": "=", "value": "false"    }
+  ]
+}
+```
+→ Cerebral infarction and its subtypes (thrombotic, embolic, lacunar,
+  pontine) — ischemic stroke only, hemorrhagic stroke excluded by design.
 
 ---
 
 ## Worked Examples
+
+### "All infarct disorders across every organ"
+1. Lookup: `codesystem_lookup("22298006")` → `116676008 = 55641003` (morphology = Infarct)
+2. Verify: `codesystem_lookup("432504007")` → same morphology on cerebral infarction
+3. Contrast: `codesystem_lookup("230690007")` → CVA has morphology = `37782003` (Damage), not Infarct
+4. Filter: `116676008 = 55641003` → MI, cerebral infarction, renal infarction, pulmonary infarction…
+5. Stack: add `363698007 = 83678007` (Cerebrum) to narrow to ischemic stroke subtypes only
 
 ### "All cardiac disorders"
 1. Search: `search_snomed("heart structure body structure")` → `80891009` Heart structure
@@ -302,6 +374,64 @@ valueset_expand filter: concept is-a 38341003
 ### "All renal procedures"
 1. Search: `search_snomed("kidney structure body structure")` → `64033007`
 2. Filter: `363704007 = 64033007` inside `is-a 71388002` (Procedure)
+
+### eCQM denominator/numerator: all T2DM concepts (subtypes + complications)
+
+This is the canonical example for building exhaustive eCQM criteria.
+
+**Step 1 — Verify the root concept**
+```
+codesystem_lookup("44054006")  →  display = "Type 2 diabetes mellitus"
+                                   sufficientlyDefined = false  ← primitive
+                                   parent = 73211009 (Diabetes mellitus)
+```
+
+**Step 2 — Check which concepts are IS-A children vs. complication-linked**
+
+| Concept | Code | In `is-a 44054006`? | Link |
+|---|---|---|---|
+| T2DM in obese | `81531005` | ✅ Yes | direct `parent = 44054006` |
+| Insulin-treated T2DM | `237599002` | ✅ Yes | direct `parent = 44054006` |
+| Retinopathy due to T2DM | `422034002` | ❌ No | `42752001` (Due to) = `44054006` |
+| Neuropathy due to T2DM | `368581000119106` | ❌ No | `42752001` (Due to) = `44054006` |
+| CAD due to T2DM | `16891151000119103` | ❌ No | `42752001` (Due to) = `44054006` |
+
+> `is-a` alone misses all complication concepts. For a complete eCQM set,
+> use a two-include ValueSet that unions both trees.
+
+**Step 3 — Build the complete ValueSet**
+```json
+{
+  "resourceType": "ValueSet",
+  "compose": {
+    "include": [
+      {
+        "system": "http://snomed.info/sct",
+        "version": "<see list_available_codesystem_versions>",
+        "filter": [
+          { "property": "concept", "op": "is-a", "value": "44054006" },
+          { "property": "inactive", "op": "=",   "value": "false" }
+        ]
+      },
+      {
+        "system": "http://snomed.info/sct",
+        "version": "<see list_available_codesystem_versions>",
+        "filter": [
+          { "property": "42752001", "op": "=",   "value": "44054006" },
+          { "property": "inactive", "op": "=",   "value": "false" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+- **Include 1** captures the root code `44054006` plus all IS-A subtypes (clinical variants of T2DM)
+- **Include 2** captures all complications encoded with "Due to = T2DM" (retinopathy, neuropathy, nephropathy, peripheral vascular disease, etc.)
+- Together they form the exhaustive denominator or numerator set most eCQMs require
+
+**Scope note:** use `descendent-of` instead of `is-a` in include 1 if the measure
+exclicitly excludes the root code (uncommon but possible in pre-coordinated IGs).
 
 ---
 
