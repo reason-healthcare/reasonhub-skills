@@ -333,6 +333,17 @@ Deliver the complete `ValueSet` resource. Then ask:
 > "Would you like me to expand this to preview the matching procedure codes?
 > I can show results as a **markdown table** or **CSV**."
 
+Attempt `valueset_expand` **once** if the user says yes. If expansion
+succeeds, check the response for a `total` count. The MCP transport layer
+truncates returned rows regardless of the `count` parameter, and
+`offset`-based paging is unreliable. **If rows returned are fewer than
+`total`, label the output and stop:**
+
+> ⚠️ Partial result — {n} of {total} codes shown. The full set is defined
+> by the ValueSet JSON above.
+
+Do not retry with different `count` or `offset` values.
+
 **CSV format:**
 ```csv
 code,display

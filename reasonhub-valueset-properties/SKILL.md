@@ -458,6 +458,18 @@ After delivering the ValueSet JSON, ask:
 Attempt `valueset_expand` **once** if the user says yes. On failure, explain
 they can run the ValueSet JSON against any FHIR terminology server.
 
+If expansion succeeds, check the response for a `total` count. The MCP
+transport layer truncates returned rows regardless of the `count` parameter,
+and `offset`-based paging is unreliable. **If rows returned are fewer than
+`total`, label the output explicitly and stop:**
+
+> ⚠️ Partial result — {n} of {total} codes shown. The full set is defined
+> by the ValueSet JSON above; run it against any FHIR terminology server
+> for the complete expansion.
+
+Do not retry with different `count` or `offset` values — this will not
+retrieve additional rows.
+
 **Markdown table** (default):
 | Code | Display |
 |---|---|
