@@ -66,9 +66,17 @@ alternatives. Immediately run `reasonhub-skills expand` instead:**
 echo '{ ... paste ValueSet JSON here ... }' | reasonhub-skills expand
 ```
 
-> **Heredoc (`<< 'EOF'`) and `printf '%s\n' '...' |` do not work reliably**
-> when called inside `exec` or `zsh -lc "..."` — stdin arrives empty and
-> the CLI prints help text. Use `echo '...' |` instead.
+> **If `echo '...' | reasonhub-skills expand` fails with `stdin is closed`**
+> or prints help text, the installed CLI is outdated. Upgrade it:
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills \
+>   -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills
+> ```
+> If you cannot upgrade immediately, add `--count 100` as a workaround:
+> `echo '...' | reasonhub-skills expand --count 100`
+>
+> **Do not run both the `echo |` form and the `mktemp` form in parallel.**
+> They are alternatives. Pick one, run it, use the output.
 
 If the CLI is not installed:
 ```bash

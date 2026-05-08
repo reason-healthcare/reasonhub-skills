@@ -267,13 +267,19 @@ API — do not fetch individual loinc.org/CODE pages to extract LP codes.**
 ```
 codesystem_lookup("2345-7", "http://loinc.org")
 # COMPONENT = LP14635-4  ← use this in COMPONENT filter
-# SYSTEM    = LP7576-4   ← use this in SYSTEM filter
+# SYSTEM    = LP7576-4   ← note for context only — do NOT expand it (see below)
 ```
 
 To find sibling observations sharing the same `COMPONENT`, use
 `reasonhub-skills expand` with a `COMPONENT = <LP_CODE>` filter —
 **not `search_loinc`**. `search_loinc` returns semantically similar
 observations, not structurally related ones sharing the same LOINC axis.
+
+> **Do not expand `SYSTEM`.** For CMP-class analytes, `SYSTEM = LP7576-4`
+> (`Ser/Plas`) matches `1001` active LOINC codes spanning blood typing
+> antibodies, food IgGs, viral loads, and oncology panels — none of them
+> related to the analyte in question. Just report the LP code and count.
+> `COMPONENT` is the discriminating axis for this query pattern.
 
 ```json
 {
