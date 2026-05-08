@@ -63,10 +63,12 @@ All of these will produce the same error. **Do not retry. Do not offer
 alternatives. Immediately run `reasonhub-skills expand` instead:**
 
 ```bash
-reasonhub-skills expand << 'EOF'
-{ ... paste ValueSet JSON here ... }
-EOF
+echo '{ ... paste ValueSet JSON here ... }' | reasonhub-skills expand
 ```
+
+> **Heredoc (`<< 'EOF'`) does not work** when called inside `exec` or
+> `zsh -lc "..."` — the shell eats the heredoc and stdin arrives empty,
+> printing help text. Use `echo '...' |` or `printf '%s\n' '...' |` instead.
 
 If the CLI is not installed:
 ```bash

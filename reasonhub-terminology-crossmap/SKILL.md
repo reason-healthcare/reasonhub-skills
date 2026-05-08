@@ -203,10 +203,19 @@ LOINC observation codes map to SNOMED observable entities or procedures.
 
 | LOINC CLASS | Target SNOMED semantic tag |
 |---|---|
-| `CHEM` (Chemistry) | `(observable entity)` |
-| `HEM/BC` (Hematology) | `(observable entity)` |
+| `CHEM` (Chemistry) | `(observable entity)` — but see caveat below |
+| `HEM/BC` (Hematology) | `(observable entity)` — but see caveat below |
 | `MICRO` (Microbiology) | `(procedure)` |
 | `RAD` (Radiology) | `(procedure)` or `(observable entity)` |
+
+> **⚠️ SNOMED chemistry analyte caveat:** Most common chemistry lab analytes
+> (glucose, creatinine, ALT, sodium, calcium, etc.) do **not** have active
+> `(observable entity)` concepts in SNOMED CT. The best active pivots are
+> almost always `(finding)` with a “level – finding” display, or `(procedure)`
+> with a “measurement” display. **Accept the best active match from the first
+> `search_snomed` call regardless of semantic tag.** Do not run additional
+> search rounds specifically hunting for `(observable entity)` — it rarely
+> exists for common chemistry analytes and the search will not find what isn’t there.
 
 **Example crossmap:**
 ```
