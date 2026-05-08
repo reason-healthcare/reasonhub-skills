@@ -49,20 +49,32 @@ installation options.
 
 ## Installation
 
-### skills.sh
+### skills.sh (SKILL.md files only)
 
 ```bash
 npx skills add reason-healthcare/reasonhub-skills
 ```
 
-### pi
+> **Note:** skills.sh installs only the `SKILL.md` files. To also install
+> the `reasonhub-skills` CLI (needed for the `$expand` fallback), run:
+> ```bash
+> curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills \
+>   -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills
+> ```
+
+### pi / install.sh (skills + CLI)
 
 ```bash
+# pi
 pi add github:reason-healthcare/reasonhub-skills
+
+# all other agents
+curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/install.sh | sh
 ```
 
-For other agents — Claude Code, Codex CLI, Amp, Droid, Windsurf, Cursor,
-GitHub Copilot — see **[INSTALL.md](./INSTALL.md)**.
+Installs both `SKILL.md` files and the `reasonhub-skills` CLI to `~/.local/bin/`.
+
+For per-agent config file paths — see **[INSTALL.md](./INSTALL.md)**.
 
 ## Skills
 

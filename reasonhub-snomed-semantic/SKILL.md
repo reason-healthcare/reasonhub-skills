@@ -263,6 +263,8 @@ Pass this to `valueset_expand`.
 > `valueset: must be object`. Retrying or removing optional parameters
 > will not fix this. **Stop after one attempt** and use
 > `reasonhub-skills expand` instead (see `valueset-properties` skill).
+> If the CLI is not installed (`npx skills add` does not install it),
+> run: `curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills`
 
 ### Step 5 — Refine with stacked filters
 

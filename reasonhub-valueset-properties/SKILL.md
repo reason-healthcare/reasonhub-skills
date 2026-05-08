@@ -64,16 +64,24 @@ All of these will produce the same error. **Stop after one attempt.**
 **Instead, use `reasonhub-skills expand` to call the FHIR API directly:**
 
 ```bash
+# Check the CLI is installed first
+command -v reasonhub-skills >/dev/null 2>&1 || echo "CLI not found — install with:
+curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills \
+  -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills"
+
+# Then expand
 reasonhub-skills expand << 'EOF'
 { ... paste ValueSet JSON here ... }
 EOF
 ```
 
-The `reasonhub-skills` CLI resolves credentials internally from
-`RH_BASE_URL` / `RH_REGISTRY_TOKEN` or `~/.reasonhub/config.toml`.
-The agent never reads env vars or config files directly.
-See [INSTALL.md](https://github.com/reason-healthcare/reasonhub-skills/blob/main/INSTALL.md)
-for setup instructions.
+> **Note for `npx skills add` users:** skills.sh only installs `SKILL.md`
+> files, not the CLI. Run the `curl` one-liner above once to install it.
+> Users who installed via `install.sh` already have it in `~/.local/bin/`.
+
+The CLI resolves credentials internally from `RH_BASE_URL` /
+`RH_REGISTRY_TOKEN` or `~/.reasonhub/config.toml`. The agent never reads
+env vars or config files directly.
 
 ---
 
