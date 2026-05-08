@@ -114,7 +114,7 @@ def _parse_count(args):
 # ── commands ───────────────────────────────────────────────────────────────────
 
 def cmd_expand(args):
-    if not args or args[0] in ("-h", "--help"):
+    if args and args[0] in ("-h", "--help"):
         print("""Usage: reasonhub-skills expand [--count N]
 
 Expand a FHIR ValueSet by piping JSON to stdin.

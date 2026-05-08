@@ -290,8 +290,11 @@ observations, not structurally related ones sharing the same LOINC axis.
 ```
 
 > **⛔ Do not scrape loinc.org** pages to get panel structure or LP codes.
+> Do not use `search_loinc` to find LP codes for analytes — `search_loinc`
+> returns semantic proximity matches, not the exact LP code bound to a given
+> LOINC observation. The LP code is in the `codesystem_lookup` response.
 > Do not use `search_loinc` for sibling finding by COMPONENT or SYSTEM axis.
-> Both are available through structured API calls.
+> All three are available through structured API calls.
 
 ---
 
