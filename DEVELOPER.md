@@ -84,6 +84,52 @@ file. Additional assets (scripts, reference docs) can live alongside it.
 - When SNOMED modeling constraints are involved, always note them explicitly
   (primitive vs. fully-defined concepts, sparse coverage, fallback strategy).
 
+## Local Installation
+
+When developing, install directly from your working copy so edits are
+picked up without re-downloading from GitHub.
+
+```bash
+# Clone (or use the submodule checkout inside the main repo)
+git clone https://github.com/reason-healthcare/reasonhub-skills ~/reasonhub-skills
+cd ~/reasonhub-skills
+
+# Install skills + CLI from local files
+./install.sh --agents          # ~/.agents/skills/  (pi global)
+./install.sh --pi              # .agents/skills/    (pi project-level)
+./install.sh --dir ~/.claude/skills  # custom path
+```
+
+The installer detects when it is running inside the repo (`skill/SKILL.md`
+exists locally) and copies files directly instead of downloading from GitHub.
+The `reasonhub-skills` CLI is copied to `~/.local/bin/` in all cases.
+
+**Re-install after edits** — the installer overwrites in place, so just
+re-run the same command after changing a `SKILL.md`:
+
+```bash
+./install.sh --agents
+```
+
+**Install the CLI only** — if you only changed `bin/reasonhub-skills`:
+
+```bash
+cp bin/reasonhub-skills ~/.local/bin/reasonhub-skills
+chmod +x ~/.local/bin/reasonhub-skills
+```
+
+**Verify the CLI resolves credentials:**
+
+```bash
+reasonhub-skills version
+# reasonhub-skills 0.1.0
+
+echo '{"resourceType":"ValueSet","compose":{"include":[{"system":"http://snomed.info/sct","filter":[{"property":"concept","op":"is-a","value":"44054006"}]}]}}' \
+  | reasonhub-skills expand --count 5
+```
+
+---
+
 ## Testing
 
 Skills call ReasonHub MCP tools directly. To test a skill:
