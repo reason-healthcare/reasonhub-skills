@@ -61,38 +61,19 @@ valueset: must be object / must be null / must match a schema in anyOf
 
 All of these will produce the same error. **Stop after one attempt.**
 
-**Instead, use the curl fallback to call the FHIR API directly:**
+**Instead, use `reasonhub-skills expand` to call the FHIR API directly:**
 
 ```bash
-bash << 'EXPAND'
-# Resolve credentials: env vars take precedence over config file
-_rh() { python3 -c "
-import sys, os
-try:
-    import tomllib
-except ImportError:
-    import tomli as tomllib
-key = sys.argv[1]
-for p in ['.reasonhub/config.toml', os.path.expanduser('~/.reasonhub/config.toml')]:
-    try:
-        d = tomllib.load(open(p,'rb')).get('reasonhub',{})
-        print(d.get(key,'')); exit()
-    except: pass
-" "$1" 2>/dev/null; }
-
-BASE="${RH_BASE_URL:-$(_rh base_url)}"
-TOKEN="${RH_REGISTRY_TOKEN:-$(_rh token)}"
-
-curl -s -X POST "${BASE}/api/fhir/-/ValueSet/\$expand" \
-  -H "Authorization: Bearer ${TOKEN}" \
-  -H "Content-Type: application/fhir+json" \
-  -d '{ ... paste ValueSet JSON here ... }'
-EXPAND
+reasonhub-skills expand << 'EOF'
+{ ... paste ValueSet JSON here ... }
+EOF
 ```
 
-This bypasses the MCP layer entirely and calls the FHIR `$expand` operation
-directly. The ValueSet JSON is the same resource produced in step 1 of the
-Output section.
+The `reasonhub-skills` CLI resolves credentials internally from
+`RH_BASE_URL` / `RH_REGISTRY_TOKEN` or `~/.reasonhub/config.toml`.
+The agent never reads env vars or config files directly.
+See [INSTALL.md](https://github.com/reason-healthcare/reasonhub-skills/blob/main/INSTALL.md)
+for setup instructions.
 
 ---
 

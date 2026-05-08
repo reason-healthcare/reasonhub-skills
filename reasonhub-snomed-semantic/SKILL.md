@@ -261,9 +261,8 @@ Pass this to `valueset_expand`.
 > **⚠️ pi limitation:** In the pi agent the `valueset` parameter is always
 > received as a string due to `$ref` type serialization, causing
 > `valueset: must be object`. Retrying or removing optional parameters
-> will not fix this. **Stop after one attempt** and use the curl fallback
-> documented in the `valueset-properties` skill (reads `RH_BASE_URL` /
-> `RH_REGISTRY_TOKEN` or `~/.reasonhub/config.toml`).
+> will not fix this. **Stop after one attempt** and use
+> `reasonhub-skills expand` instead (see `valueset-properties` skill).
 
 ### Step 5 — Refine with stacked filters
 

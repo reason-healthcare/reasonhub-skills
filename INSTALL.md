@@ -78,6 +78,42 @@ from **Settings → Access Tokens**.
 
 ---
 
+## CLI
+
+The installer puts `reasonhub-skills` in `~/.local/bin/`. This CLI is how
+agents call the FHIR API directly when MCP is unavailable — credentials
+are resolved inside the script and never exposed to callers.
+
+```bash
+# Expand a ValueSet
+reasonhub-skills expand < my-valueset.json
+echo '{...}' | reasonhub-skills expand
+reasonhub-skills expand --count 500 < my-valueset.json
+
+# Print version
+reasonhub-skills version
+```
+
+**Windows:** the installer also places `reasonhub-skills.cmd` alongside the
+Python script. Both delegate to the same Python logic. Ensure `python` is
+in your PATH.
+
+**Manual CLI install (without running the full installer):**
+
+```bash
+# Unix
+curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills \
+  -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills
+
+# Windows (PowerShell)
+Invoke-WebRequest https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills `
+  -OutFile "$env:USERPROFILE\.local\bin\reasonhub-skills"
+Invoke-WebRequest https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills.cmd `
+  -OutFile "$env:USERPROFILE\.local\bin\reasonhub-skills.cmd"
+```
+
+---
+
 ## MCP Configuration
 
 All agents need the ReasonHub MCP server configured. Using the values from

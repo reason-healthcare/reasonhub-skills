@@ -1,0 +1,185 @@
+#!/usr/bin/env python3
+"""reasonhub-skills — ReasonHub CLI
+
+Cross-platform (Linux, macOS, BSD, Windows).
+Uses only Python stdlib — no external dependencies required.
+
+Credential resolution is handled entirely inside this script.
+Callers (including AI agents) never read env vars or config files directly.
+"""
+
+import json
+import os
+import sys
+import urllib.error
+import urllib.request
+
+VERSION = "0.1.0"
+
+HELP = """\
+reasonhub-skills — ReasonHub CLI
+
+Commands:
+  reasonhub-skills expand [--count N]   Expand a FHIR ValueSet (reads JSON from stdin)
+  reasonhub-skills version              Print version
+
+Configuration (in order of precedence):
+  1. RH_BASE_URL + RH_REGISTRY_TOKEN environment variables
+  2. .reasonhub/config.toml  (project-level)
+  3. ~/.reasonhub/config.toml  (user-level)
+
+     [reasonhub]
+     base_url = "https://reasonhub.app"
+     token    = "your-access-token-here"
+
+Examples:
+  echo '{...}' | reasonhub-skills expand
+  reasonhub-skills expand < my-valueset.json
+  reasonhub-skills expand --count 500 < my-valueset.json
+"""
+
+
+# ── credential resolution ──────────────────────────────────────────────────────
+
+def _load_toml(path):
+    """Load [reasonhub] section from a config.toml. Returns {} on any error."""
+    try:
+        import tomllib                          # stdlib >= 3.11
+    except ImportError:
+        try:
+            import tomli as tomllib             # pip install tomli on 3.9/3.10
+        except ImportError:
+            return {}
+    try:
+        with open(path, "rb") as fh:
+            return tomllib.load(fh).get("reasonhub", {})
+    except Exception:
+        return {}
+
+
+def get_credentials():
+    base  = os.environ.get("RH_BASE_URL", "")
+    token = os.environ.get("RH_REGISTRY_TOKEN", "")
+
+    if not (base and token):
+        for path in [
+            ".reasonhub/config.toml",
+            os.path.expanduser("~/.reasonhub/config.toml"),
+        ]:
+            cfg   = _load_toml(path)
+            base  = base  or cfg.get("base_url", "")
+            token = token or cfg.get("token", "")
+            if base and token:
+                break
+
+    if not base:
+        _die(
+            "RH_BASE_URL not set.\n"
+            "  Set it in ~/.reasonhub/config.toml or export RH_BASE_URL=..."
+        )
+    if not token:
+        _die(
+            "RH_REGISTRY_TOKEN not set.\n"
+            "  Set it in ~/.reasonhub/config.toml or export RH_REGISTRY_TOKEN=..."
+        )
+
+    return base.rstrip("/"), token
+
+
+# ── helpers ────────────────────────────────────────────────────────────────────
+
+def _die(msg):
+    sys.stderr.write(f"reasonhub-skills: {msg}\n")
+    sys.exit(1)
+
+
+def _parse_count(args):
+    """Pull --count N out of args list. Returns (count_or_None, remaining_args)."""
+    remaining = []
+    count = None
+    i = 0
+    while i < len(args):
+        if args[i] == "--count" and i + 1 < len(args):
+            try:
+                count = int(args[i + 1])
+            except ValueError:
+                _die(f"--count must be an integer, got: {args[i+1]}")
+            i += 2
+        else:
+            remaining.append(args[i])
+            i += 1
+    return count, remaining
+
+
+# ── commands ───────────────────────────────────────────────────────────────────
+
+def cmd_expand(args):
+    count, _ = _parse_count(args)
+
+    raw = sys.stdin.buffer.read()
+    if not raw.strip():
+        _die("expand: no input — pipe a ValueSet JSON to stdin\n"
+             "  Example: reasonhub-skills expand < my-valueset.json")
+
+    try:
+        body = json.loads(raw)
+    except json.JSONDecodeError as exc:
+        _die(f"expand: invalid JSON — {exc}")
+
+    base, token = get_credentials()
+    url = f"{base}/api/fhir/-/ValueSet/$expand"
+    if count is not None:
+        url += f"?count={count}"
+
+    payload = json.dumps(body).encode()
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            "Authorization":  f"Bearer {token}",
+            "Content-Type":   "application/fhir+json",
+            "Accept":         "application/fhir+json",
+        },
+        method="POST",
+    )
+
+    try:
+        with urllib.request.urlopen(req) as resp:
+            result = json.loads(resp.read())
+    except urllib.error.HTTPError as exc:
+        body_err = exc.read()
+        try:
+            result = json.loads(body_err)
+        except Exception:
+            _die(f"HTTP {exc.code} {exc.reason}: {body_err.decode(errors='replace')}")
+
+    print(json.dumps(result, indent=2))
+
+    # Surface truncation warning so the agent knows immediately
+    expansion = result.get("expansion", {})
+    total     = expansion.get("total")
+    returned  = len(expansion.get("contains", []))
+    if total is not None and returned < total:
+        sys.stderr.write(
+            f"\n⚠️  Partial result — {returned} of {total} codes returned.\n"
+            f"   Use --count to request more, or run the ValueSet JSON against\n"
+            f"   a FHIR terminology server for the full expansion.\n"
+        )
+
+
+def main():
+    args = sys.argv[1:]
+    cmd  = args[0] if args else "help"
+
+    if cmd in ("help", "-h", "--help"):
+        print(HELP)
+    elif cmd in ("version", "-v", "--version"):
+        print(f"reasonhub-skills {VERSION}")
+    elif cmd == "expand":
+        cmd_expand(args[1:])
+    else:
+        _die(f"unknown command '{cmd}'. Try 'reasonhub-skills help'")
+
+
+if __name__ == "__main__":
+    main()

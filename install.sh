@@ -8,6 +8,8 @@ set -e
 REPO="https://github.com/reason-healthcare/reasonhub-skills"
 RAW="https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main"
 SKILLS="reasonhub-snomed-semantic reasonhub-terminology-crossmap reasonhub-valueset-properties"
+CLI_NAME="reasonhub-skills"
+CLI_DEST="$HOME/.local/bin"
 
 # ── helpers ────────────────────────────────────────────────────────────────────
 
@@ -18,6 +20,25 @@ error()   { printf '\033[31m error\033[0m  %s\n' "$*" >&2; exit 1; }
 
 require() {
   command -v "$1" >/dev/null 2>&1 || error "Required command not found: $1"
+}
+
+install_cli() {
+  mkdir -p "$CLI_DEST"
+  if [ -f "bin/$CLI_NAME" ]; then
+    cp "bin/$CLI_NAME" "$CLI_DEST/$CLI_NAME"
+  else
+    require curl
+    curl -fsSL "$RAW/bin/$CLI_NAME" -o "$CLI_DEST/$CLI_NAME"
+  fi
+  chmod +x "$CLI_DEST/$CLI_NAME"
+  success "installed CLI \u2192 $CLI_DEST/$CLI_NAME"
+
+  # Warn if ~/.local/bin is not in PATH
+  case ":$PATH:" in
+    *":$CLI_DEST:"*) ;;
+    *) warn "$CLI_DEST is not in your PATH. Add to your shell profile:"
+       warn "  export PATH=\"$CLI_DEST:\$PATH\"" ;;
+  esac
 }
 
 copy_skills() {
@@ -123,23 +144,28 @@ fi
 case "$mode" in
   pi)
     copy_skills ".agents/skills"
+    install_cli
     info "Skills will be auto-discovered by pi in .agents/skills/"
     ;;
   agents)
     copy_skills "$HOME/.agents/skills"
+    install_cli
     info "Skills will be available globally to pi in ~/.agents/skills/"
     ;;
   copilot)
     copy_skills ".github/skills"
+    install_cli
     info "Skills will be discovered by GitHub Copilot in .github/skills/"
     ;;
   cursor)
     generate_cursor_rules ".cursor/rules"
+    install_cli
     info "Add .cursor/rules/ to your Cursor settings to enable rule discovery"
     ;;
   "")
     if [ -n "$custom_dir" ]; then
       copy_skills "$custom_dir"
+      install_cli
     else
       error "No install target specified. Run with --help for usage."
     fi
@@ -148,5 +174,6 @@ esac
 
 printf '\n'
 success "reasonhub-skills installed"
-printf '\n  Requires a running ReasonHub MCP server.\n'
+printf '\n  CLI: %s/%s\n' "$CLI_DEST" "$CLI_NAME"
+printf '  Requires a running ReasonHub MCP server.\n'
 printf '  See %s for setup.\n\n' "$REPO"
