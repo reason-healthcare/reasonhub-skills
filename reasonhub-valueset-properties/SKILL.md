@@ -435,3 +435,41 @@ If `valueset_expand` returns no results or an error:
    isolate which condition is causing empty results.
 5. **For SNOMED attribute filters** — look up a representative concept you
    expect to match and confirm it actually has the attribute you're filtering on.
+
+---
+
+## Output
+
+Every query produces two deliverables.
+
+### 1. FHIR ValueSet JSON (always deliver this)
+
+Return a complete `ValueSet` resource with `name`, `title`, `status`, and a
+populated `compose.include`. This is always useful regardless of whether
+expansion succeeds or fails.
+
+### 2. Expansion (ask the user)
+
+After delivering the ValueSet JSON, ask:
+
+> "Would you like me to expand this and show the matching codes?
+> I can format results as a **markdown table** or **CSV**."
+
+Attempt `valueset_expand` **once** if the user says yes. On failure, explain
+they can run the ValueSet JSON against any FHIR terminology server.
+
+**Markdown table** (default):
+| Code | Display |
+|---|---|
+| `44054006` | Type 2 diabetes mellitus |
+
+**CSV** (when the user asks to download, import, or use in a spreadsheet):
+```csv
+code,display
+44054006,"Type 2 diabetes mellitus"
+```
+
+For SNOMED, add `semanticTag` as a third column when the expansion mixes
+concept types. For LOINC, `EXAMPLE_UCUM_UNITS` is a useful addition for
+quantitative observation sets. For RxNorm, `TTY` clarifies whether each
+row is an ingredient, clinical drug, or branded product.

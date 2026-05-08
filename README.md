@@ -56,8 +56,8 @@ GitHub Copilot — see **[INSTALL.md](./INSTALL.md)**.
 **Build a ValueSet of all bacterial respiratory infections**
 
 ```
-Find all SNOMED disorders whose causative agent is a bacterium (409822003).
-Useful for antibiogram reporting, infection control dashboards, or CDS rules.
+Find all SNOMED disorders whose causative agent is a bacterium.  I need it for
+antibiogram reporting and infection control dashboards.
 ```
 
 **Find every disorder caused by Staphylococcus aureus**
@@ -65,8 +65,7 @@ Useful for antibiogram reporting, infection control dashboards, or CDS rules.
 ```
 I need all SNOMED disorders attributed to Staph aureus for an HAI
 dashboard — cellulitis, endocarditis, bacteremia, osteomyelitis, toxic
-shock syndrome, pneumonia. Use causative agent (246075003) =
-Staphylococcus aureus (3092008).
+shock syndrome, pneumonia. Use causative agent Staphylococcus aureus.
 ```
 
 **Build a multi-organ ischemic infarction ValueSet**
@@ -74,19 +73,8 @@ Staphylococcus aureus (3092008).
 ```
 I need all infarct-type conditions across every organ for an ischemic
 event registry — MI, cerebral infarction, renal, pulmonary, mesenteric.
-Use associated morphology = infarct (55641003). Does generic stroke/CVA
+Use the associated morphology infarct. Does generic stroke/CVA
 get included? If not, how do I get ischemic stroke subtypes only?
-```
-
-**Enumerate all T2DM concepts for a quality measure (subtypes + complications)**
-
-```
-concept is-a 44054006 (Type 2 diabetes mellitus) returns T2DM and its
-clinical subtypes (T2DM in obese, insulin-treated T2DM, etc.). But T2DM
-complications (retinopathy, neuropathy, CAD) are NOT IS-A children of
-44054006 — they link back via attribute 42752001 (Due to). For exhaustive
-eCQM denominator or numerator criteria, compose a two-include ValueSet:
-one include for concept is-a 44054006 and a second for 42752001 = 44054006.
 ```
 
 ---

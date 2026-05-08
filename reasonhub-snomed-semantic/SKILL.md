@@ -29,6 +29,73 @@ filter that returns exactly the right set of codes.
 
 ---
 
+## Output
+
+Every query produces two deliverables.
+
+### 1. FHIR ValueSet JSON (always deliver this)
+
+Return a complete `ValueSet` resource with `name`, `title`, `status`, and a
+populated `compose.include`. This is the primary artifact — useful whether or
+not expansion succeeds.
+
+```json
+{
+  "resourceType": "ValueSet",
+  "name": "AllInfarctDisorders",
+  "title": "All Infarct Disorders",
+  "status": "draft",
+  "compose": {
+    "include": [
+      {
+        "system": "http://snomed.info/sct",
+        "version": "<from list_available_codesystem_versions>",
+        "filter": [
+          { "property": "116676008", "op": "=", "value": "55641003" },
+          { "property": "inactive",  "op": "=", "value": "false" }
+        ]
+      }
+    ]
+  }
+}
+```
+
+### 2. Expansion (ask the user)
+
+After delivering the ValueSet JSON, ask:
+
+> "Would you like me to expand this and show the matching codes?
+> I can format the results as a **markdown table** or **CSV**."
+
+If the user says yes, attempt `valueset_expand` **once**. On failure (see pi
+limitation below), explain they can run the ValueSet JSON against any FHIR
+terminology server or the ReasonHub API directly.
+
+If expansion succeeds, use the requested format:
+
+**Markdown table** (default):
+| Code | Display |
+|---|---|
+| `22298006` | Myocardial infarction |
+| `432504007` | Cerebral infarction |
+
+**CSV** (when the user asks to download, import, or use in a spreadsheet):
+```csv
+code,display
+22298006,"Myocardial infarction"
+432504007,"Cerebral infarction"
+```
+
+For SNOMED results, adding `semanticTag` as a third column is useful when
+the expansion mixes disorders, findings, and procedures:
+```csv
+code,display,semanticTag
+22298006,"Myocardial infarction",disorder
+432504007,"Cerebral infarction",disorder
+```
+
+---
+
 ## SNOMED's Semantic Model
 
 ### Common relationship attributes
