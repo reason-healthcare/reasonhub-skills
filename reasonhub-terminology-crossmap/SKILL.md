@@ -157,7 +157,7 @@ ICD-10-CM codes map well to SNOMED disorders and findings.
 | Z codes (factors influencing health) | `(situation)` or `(finding)` |
 
 **Tip:** ICD-10 codes are intentionally coarser than SNOMED. A single ICD-10
-code often maps to multiple SNOMED concepts. Choose the most clinically
+code can map to multiple SNOMED concepts. Choose the most clinically
 appropriate one for the query goal.
 
 **Example crossmap:**
@@ -364,7 +364,36 @@ codesystem_lookup("232717009", "http://snomed.info/sct")  # CABG
 # → use 405813007 — it covers both PCI and CABG
 ```
 
-**Phase 5 — ValueSet output:**
+**Phase 5 — ConceptMap + ValueSet output:**
+
+*ConceptMap (source → SNOMED pivot):*
+```json
+{
+  "resourceType": "ConceptMap",
+  "name": "I2510ToSNOMED",
+  "title": "Atherosclerotic heart disease of native coronary artery without angina pectoris → SNOMED CT",
+  "status": "draft",
+  "sourceUri": "http://hl7.org/fhir/sid/icd-10-cm",
+  "targetUri": "http://snomed.info/sct",
+  "group": [{
+    "source": "http://hl7.org/fhir/sid/icd-10-cm",
+    "target": "http://snomed.info/sct",
+    "targetVersion": "http://snomed.info/sct/731000124108/version/20250901",
+    "element": [{
+      "code": "I25.10",
+      "display": "Atherosclerotic heart disease of native coronary artery without angina pectoris",
+      "target": [{
+        "code": "53741008",
+        "display": "Coronary arteriosclerosis",
+        "equivalence": "wider",
+        "comment": "ICD-10-CM I25.10 specifies absence of angina; SNOMED 53741008 is broader. Verify clinical fit before use."
+      }]
+    }]
+  }]
+}
+```
+
+*ValueSet (procedures at pivot site):*
 ```json
 {
   "resourceType": "ValueSet",
@@ -396,7 +425,7 @@ the full set of relationship query patterns.
 
 ## Output
 
-Every crossmap delivers two things.
+Every crossmap delivers **three** things.
 
 ### 1. Crossmap provenance (always)
 
@@ -408,7 +437,84 @@ Show the mapping chain so the user can verify it:
 | SNOMED match | `53741008` | SNOMED CT | Coronary arteriosclerosis |
 | Pivot (finding site) | `41801008` | SNOMED CT | Coronary artery structure |
 
-### 2. FHIR ValueSet JSON + optional expansion
+### 2. FHIR ConceptMap JSON (always)
+
+Emit a complete `ConceptMap` resource capturing the source → SNOMED mapping.
+This is the machine-readable artifact users can load into a FHIR server or
+validation tool to verify the crossmap.
+
+**Equivalence guidance** (R4 `equivalence` codes):
+
+| Situation | Use |
+|---|---|
+| One-to-one, clinically exact | `equivalent` |
+| ICD-10 / LOINC is coarser; SNOMED is more specific | `wider` |
+| SNOMED concept covers more than the source code | `narrower` |
+| Closest match but semantically imprecise | `inexact` |
+| No reasonable match found | `unmatched` |
+
+ICD-10 codes are almost always `wider` or `inexact`; note the reason in
+`comment`.
+
+**Template:**
+```json
+{
+  "resourceType": "ConceptMap",
+  "name": "<SourceCode>ToSNOMED",
+  "title": "<Source display> → SNOMED CT",
+  "status": "draft",
+  "sourceUri": "<source_system>",
+  "targetUri": "http://snomed.info/sct",
+  "group": [{
+    "source": "<source_system>",
+    "sourceVersion": "<source_version>",
+    "target": "http://snomed.info/sct",
+    "targetVersion": "<snomed_version>",
+    "element": [{
+      "code": "<source_code>",
+      "display": "<source_display>",
+      "target": [{
+        "code": "<snomed_code>",
+        "display": "<snomed_display>",
+        "equivalence": "<equivalence_code>",
+        "comment": "<reason — e.g. ICD-10 is coarser; verify clinical fit>"
+      }]
+    }]
+  }]
+}
+```
+
+**Worked example (I25.10 → SNOMED):**
+```json
+{
+  "resourceType": "ConceptMap",
+  "name": "I2510ToSNOMED",
+  "title": "Atherosclerotic heart disease of native coronary artery without angina pectoris → SNOMED CT",
+  "status": "draft",
+  "sourceUri": "http://hl7.org/fhir/sid/icd-10-cm",
+  "targetUri": "http://snomed.info/sct",
+  "group": [{
+    "source": "http://hl7.org/fhir/sid/icd-10-cm",
+    "target": "http://snomed.info/sct",
+    "targetVersion": "http://snomed.info/sct/731000124108/version/20250901",
+    "element": [{
+      "code": "I25.10",
+      "display": "Atherosclerotic heart disease of native coronary artery without angina pectoris",
+      "target": [{
+        "code": "53741008",
+        "display": "Coronary arteriosclerosis",
+        "equivalence": "wider",
+        "comment": "ICD-10-CM I25.10 specifies absence of angina; SNOMED 53741008 is broader. Verify clinical fit before use."
+      }]
+    }]
+  }]
+}
+```
+
+> **Always include both `display` values** (source and target) so the
+> ConceptMap is human-readable without a terminology server lookup.
+
+### 3. FHIR ValueSet JSON + optional expansion
 
 Deliver the complete `ValueSet` resource. Then ask:
 
@@ -416,15 +522,9 @@ Deliver the complete `ValueSet` resource. Then ask:
 > I can show results as a **markdown table** or **CSV**."
 
 Attempt `valueset_expand` **once** if the user says yes. If expansion
-succeeds, check the response for a `total` count. The MCP transport layer
-truncates returned rows regardless of the `count` parameter, and
-`offset`-based paging is unreliable. **If rows returned are fewer than
-`total`, label the output and stop:**
-
-> ⚠️ Partial result — {n} of {total} codes shown. The full set is defined
-> by the ValueSet JSON above.
-
-Do not retry with different `count` or `offset` values.
+returns fewer rows than `total`, label the output as partial and stop.
+Do not retry. See [**`reasonhub-expand-mechanics`**](../reasonhub-expand-mechanics/SKILL.md)
+for expand failures, CLI fallback, and debugging.
 
 **CSV format:**
 ```csv

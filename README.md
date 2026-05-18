@@ -1,6 +1,6 @@
 # reasonhub-skills
 
-Agent skills for clinical terminology querying — search SNOMED CT's semantic
+Agent skills for clinical terminology querying - search SNOMED CT's semantic
 relationships, crossmap codes across ICD-10, LOINC, and RxNorm, and build
 property-filtered ValueSets, all from natural language clinical questions.
 
@@ -13,7 +13,7 @@ These skills call tools from the **ReasonHub MCP server**. Before installing:
 1. **Sign up** at [reasonhub.app](https://reasonhub.app) and copy your token
    from **Settings → Access Tokens**.
 
-2. **Set credentials** — choose env vars or a config file:
+2. **Set credentials** - choose env vars or a config file:
 
    ```bash
    # Option A: environment variables
@@ -52,10 +52,10 @@ installation options.
 ### skills.sh
 
 ```bash
-# Step 1 — install skills
+# Step 1 - install skills
 npx skills add reason-healthcare/reasonhub-skills
 
-# Step 2 — install CLI
+# Step 2 - install CLI
 curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills \
   -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills
 ```
@@ -72,15 +72,26 @@ curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/
 
 Installs both `SKILL.md` files and the `reasonhub-skills` CLI to `~/.local/bin/`.
 
-For per-agent config file paths — see **[INSTALL.md](./INSTALL.md)**.
+For per-agent config file paths - see **[INSTALL.md](./INSTALL.md)**.
 
 ## Skills
 
 | Skill | Description |
 |---|---|
 | [`reasonhub-snomed-semantic`](./reasonhub-snomed-semantic/SKILL.md) | Query SNOMED CT using attribute relationships (finding site, causative agent, associated morphology, procedure site) and IS-A hierarchy. Includes clinical question translation: symptoms, complications, subtypes. |
-| [`reasonhub-terminology-crossmap`](./reasonhub-terminology-crossmap/SKILL.md) | Map a code from ICD-10-CM, LOINC, or RxNorm to its SNOMED CT equivalent to unlock SNOMED's richer semantic model. |
-| [`reasonhub-valueset-properties`](./reasonhub-valueset-properties/SKILL.md) | Build property-filtered ValueSets for all five code systems (SNOMED CT, LOINC, RxNorm, ICD-10-CM, UCUM) with clinical examples and a debugging guide. |
+| [`reasonhub-clinical-search`](./reasonhub-clinical-search/SKILL.md) | Search ICD-10-CM, LOINC, and RxNorm by clinical concept using semantic similarity, then build a property-filtered FHIR ValueSet. Automatically detects which code system fits the query; prompts when ambiguous. Covers ICD-10 hierarchy, LOINC multi-axis filters (CLASS, COMPONENT, panel-parent), and RxNorm ingredient → product navigation. |
+| [`reasonhub-terminology-crossmap`](./reasonhub-terminology-crossmap/SKILL.md) | Map a code from ICD-10-CM, LOINC, or RxNorm to its SNOMED CT equivalent to unlock SNOMED’s richer semantic model. Outputs a FHIR ConceptMap (source → SNOMED mapping with equivalence), a FHIR ValueSet (attribute-filtered procedure/finding set), and a provenance table. |
+
+## Shared References
+
+These files are not user-triggered skills. They are consulted by the skills
+above for shared technical mechanics.
+
+| Reference | Purpose |
+|---|---|
+| [`reasonhub-expand-mechanics`](./reasonhub-expand-mechanics/SKILL.md) | `valueset_expand` failure diagnosis and universal CLI fallback, bulk Python scripting, truncation handling, and debugging checklist. |
+
+---
 
 ## Examples
 
@@ -97,7 +108,7 @@ antibiogram reporting and infection control dashboards.
 
 ```
 I need all SNOMED disorders attributed to Staph aureus for an HAI
-dashboard — cellulitis, endocarditis, bacteremia, osteomyelitis, toxic
+dashboard - cellulitis, endocarditis, bacteremia, osteomyelitis, toxic
 shock syndrome, pneumonia. Use causative agent Staphylococcus aureus.
 ```
 
@@ -105,34 +116,69 @@ shock syndrome, pneumonia. Use causative agent Staphylococcus aureus.
 
 ```
 I need all infarct-type conditions across every organ for an ischemic
-event registry — MI, cerebral infarction, renal, pulmonary, mesenteric.
+event registry - MI, cerebral infarction, renal, pulmonary, mesenteric.
 Use the associated morphology infarct. Does generic stroke/CVA
 get included? If not, how do I get ischemic stroke subtypes only?
 ```
 
 ---
 
+### `reasonhub-clinical-search`
+
+**All T2DM diagnosis codes for an eCQM denominator**
+
+```
+I need all ICD-10-CM codes for type 2 diabetes mellitus for an eCQM
+denominator - every subtype, complication, and manifestation under E11.
+```
+
+**All active orderable glucose lab tests**
+
+```
+Build me a LOINC ValueSet of all active orderable glucose observations
+for a CDS rule that triggers on blood glucose results.
+```
+
+**All generic metformin drug products for a formulary**
+
+```
+I need a RxNorm ValueSet of all generic clinical drug products containing
+metformin - tablets, extended release, combinations - for a formulary
+checklist. No branded names.
+```
+
+**Cross-system eCQM bundle**
+
+```
+For a diabetes management eCQM I need three ValueSets in one resource:
+all T2DM ICD-10 diagnoses, all active glucose LOINC observations, and
+all generic metformin RxNorm drugs. Combine into a single cross-system
+ValueSet.
+```
+
+---
+
 ### `reasonhub-terminology-crossmap`
 
-**Our claims data uses ICD-10 — how do I get the right SNOMED procedure codes?**
+**Our claims data uses ICD-10 - how do I get the right SNOMED procedure codes?**
 
 ```
 We have I25.10 (Atherosclerotic heart disease) in our encounter data and need a
-ValueSet of coronary procedures to match against it — PCI, CABG, angiography,
+ValueSet of coronary procedures to match against it - PCI, CABG, angiography,
 stent placement. Map the ICD-10 code to SNOMED and then pull all procedures on
 that artery.
 ```
 
-**Does aspirin cause GI bleeding? Show me every SNOMED disorder it’s linked to**
+**Does aspirin cause GI bleeding? Show me every SNOMED disorder it's linked to**
 
 ```
-I want to find all conditions attributed to aspirin in SNOMED — GI
+I want to find all conditions attributed to aspirin in SNOMED - GI
 haemorrhage, Reye syndrome, aspirin-exacerbated respiratory disease.
 Start from RxNorm 1191 (Aspirin) and work through to SNOMED causative
 agent.
 ```
 
-**I have a LOINC panel code — what SNOMED observations are related to it?**
+**I have a LOINC panel code - what SNOMED observations are related to it?**
 
 ```
 We're using LOINC 24323-8 (Comprehensive metabolic panel) and want to understand
@@ -142,61 +188,6 @@ analytes and show what other observations share the same COMPONENT or SYSTEM.
 
 ---
 
-### `reasonhub-valueset-properties`
-
-**All active orderable quantitative hematology and chemistry LOINC codes**
-
-```json
-{
-  "filter": [
-    { "property": "CLASS",     "op": "in", "value": "CHEM,HEM/BC" },
-    { "property": "STATUS",    "op": "=",  "value": "ACTIVE" },
-    { "property": "ORDER_OBS", "op": "in", "value": "Order,Both" },
-    { "property": "SCALE_TYP", "op": "=",  "value": "LP7753-9" }
-  ]
-}
-```
-
-**All oral solid generic clinical drugs in RxNorm**
-
-```json
-{
-  "filter": [
-    { "property": "TTY",              "op": "=", "value": "SCD" },
-    { "property": "has_doseformgroup", "op": "=", "value": "316945" }
-  ]
-}
-```
-
-**A cross-system ValueSet spanning ICD-10 and SNOMED for CDS**
-
-```json
-{
-  "compose": {
-    "include": [
-      {
-        "system": "http://hl7.org/fhir/sid/icd-10-cm",
-        "filter": [{ "property": "parent",  "op": "is-a", "value": "E11" }]
-      },
-      {
-        "system": "http://snomed.info/sct",
-        "filter": [{ "property": "concept", "op": "is-a", "value": "44054006" }]
-      }
-    ]
-  }
-}
-```
-
-**UCUM units appropriate for a glucose concentration observation**
-
-```
-After expanding a LOINC glucose ValueSet, call codesystem_lookup on any
-result to read its EXAMPLE_UCUM_UNITS property, then verify composed
-expressions like mg/dL and mmol/L via codesystem_verify_code.
-```
-
----
-
 ## License
 
-[MIT](./LICENSE) — [Reason Healthcare](https://reasonhub.app)
+[MIT](./LICENSE) - [Reason Healthcare](https://reasonhub.app)

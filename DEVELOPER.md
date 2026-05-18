@@ -22,14 +22,30 @@ reasonhub-skills/
 │   └── SKILL.md
 ├── reasonhub-terminology-crossmap/
 │   └── SKILL.md
-└── reasonhub-valueset-properties/
+├── reasonhub-clinical-search/
+│   └── SKILL.md
+└── reasonhub-expand-mechanics/
     └── SKILL.md
 ```
 
 Each skill is a directory named after the skill with a single `SKILL.md`
 file. Additional assets (scripts, reference docs) can live alongside it.
 
-## Adding a New Skill
+The repo contains two kinds of `SKILL.md`:
+
+| Kind | Loaded by | Needs trigger phrases | Needs worked examples |
+|---|---|---|---|
+| **User-triggered skill** | Agent, in response to a user query | Yes | Yes |
+| **Shared reference** | Other skills, via explicit cross-reference | No | No |
+
+Current user-triggered skills: `reasonhub-snomed-semantic`,
+`reasonhub-clinical-search`, `reasonhub-terminology-crossmap`.
+
+Current shared references: `reasonhub-expand-mechanics`.
+
+## Adding a New Skill or Shared Reference
+
+### User-triggered skill
 
 1. **Create the directory**
 
@@ -75,6 +91,22 @@ file. Additional assets (scripts, reference docs) can live alongside it.
    ```
 
    Fix any warnings about frontmatter before opening a PR.
+
+### Shared reference
+
+A shared reference holds mechanics, lookup tables, or rules used by multiple
+skills. It is never loaded directly by an agent in response to a user query.
+
+1. Create the directory and `SKILL.md` with the same frontmatter fields.
+2. Set `description` to explain what the file contains and state explicitly
+   that it is **not user-triggered** — this prevents agents from loading it
+   speculatively.
+3. Do not include `## Examples` or trigger phrases.
+4. Add a cross-reference line in every skill that depends on it:
+   > See [**`reasonhub-expand-mechanics`**](../reasonhub-expand-mechanics/SKILL.md)
+   > for ...
+5. Add it to the **Shared References** table in `README.md`, not the
+   **Skills** table.
 
 ## Updating an Existing Skill
 
@@ -161,6 +193,9 @@ Skills call ReasonHub MCP tools directly. To test a skill:
 
 ## Skill Writing Guidelines
 
+The guidelines below apply to **user-triggered skills**. Shared references
+have no worked-example or trigger-phrase requirements.
+
 **Descriptions** — the `description` frontmatter is read on every agent turn.
 Keep it under 1024 chars. Lead with what the skill does, then list specific
 trigger phrases the agent should recognise.
@@ -175,6 +210,10 @@ strategy. Agents that hit an empty expansion with no guidance will hallucinate.
 **Attribute tables** — mark curated attribute tables as non-exhaustive.
 Always direct the agent to use `codesystem_lookup` on a representative
 concept to discover the actual attributes in use for a given clinical domain.
+
+**No ambiguous verbs** — avoid `often`, `usually`, `consider`, `might`,
+`could`, `sometimes`. Every instruction the agent reads should resolve to
+a deterministic action or an explicit conditional.
 
 ## Submitting to skills.sh
 
@@ -197,6 +236,8 @@ Add the install badge to the README:
 
 ## Pull Request Checklist
 
+### User-triggered skill
+
 - [ ] Directory name matches `name` in frontmatter
 - [ ] `description` is under 1024 chars and includes trigger phrases
 - [ ] `compatibility` notes the ReasonHub MCP requirement
@@ -205,3 +246,13 @@ Add the install badge to the README:
 - [ ] SNOMED primitive/fully-defined caveats documented where relevant
 - [ ] Tested against a live ReasonHub MCP server
 - [ ] `pi --list-skills --skill ./skill-name` produces no errors
+
+### Shared reference
+
+- [ ] Directory name matches `name` in frontmatter
+- [ ] `description` states it is not user-triggered
+- [ ] `compatibility` notes the ReasonHub MCP requirement
+- [ ] `license: MIT` in frontmatter
+- [ ] Added to **Shared References** table in `README.md`
+- [ ] Cross-reference line added in every skill that depends on it
+- [ ] No worked examples, no trigger phrases

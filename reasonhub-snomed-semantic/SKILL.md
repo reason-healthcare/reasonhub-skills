@@ -71,17 +71,9 @@ If the user says yes, attempt `valueset_expand` **once**. On failure,
 **immediately run `reasonhub-skills expand`** with the same ValueSet JSON
 — do not explain, do not offer alternatives, just run it.
 
-If expansion succeeds, check the response for a `total` count. The MCP
-transport layer truncates returned rows regardless of the `count` parameter,
-and `offset`-based paging is unreliable. **If rows returned are fewer than
-`total`, label the output explicitly and stop:**
-
-> ⚠️ Partial result — {n} of {total} codes shown. The full set is defined
-> by the ValueSet JSON above; run it against any FHIR terminology server
-> for the complete expansion.
-
-Do not retry with different `count` or `offset` values — this will not
-retrieve additional rows.
+If expansion returns fewer rows than `total`, label the output as partial
+and stop. Do not retry. See [**`reasonhub-expand-mechanics`**](../reasonhub-expand-mechanics/SKILL.md)
+for expand failures, CLI fallback, scripting, and debugging.
 
 If expansion succeeds, use the requested format:
 
@@ -124,7 +116,7 @@ concept to discover the actual attributes present (see
 | `246075003` | Causative agent | Disorders, infections | Causative agent = Staphylococcus (`65119002`) |
 | `116676008` | Associated morphology | Disorders, findings | Associated morphology = Infarct (`55641003`) |
 | `363704007` | Procedure site - Direct | Procedures | The structure directly incised/excised. Kidney biopsy uses `405813007` (Indirect) instead — look up first. |
-| `405813007` | Procedure site - Indirect | Procedures | The target organ reached through another structure. Often used where `363704007` might be expected. |
+| `405813007` | Procedure site - Indirect | Procedures | Used when the procedure's target is reached via another structure. **Look up a representative procedure before choosing between `363704007` and `405813007`** — both may be present on the same concept; use whichever appears on the procedures you need to capture. |
 | `370135005` | Pathological process | Disorders | Pathological process = Inflammatory (`441862004`) |
 | `47429007`  | Associated with | Findings, disorders | Associated with = Hypertension (`38341003`) |
 | `42752001`  | Due to | Disorders, findings | Due to = Type 2 diabetes mellitus (`44054006`) — links complications to causal condition |
@@ -175,6 +167,31 @@ concepts in that domain actually share — as your filter value.
 
 ---
 
+## Filter Rules
+
+These rules apply to every filter in this skill. Violating any of them will
+produce empty or wrong results.
+
+1. **Only active relationships are stored.** Inactive concept attributes are
+   excluded — adding `inactive = false` to a filter is redundant but harmless;
+   omitting it does not expose inactive data.
+2. **Primitive concepts have sparse or no attributes.** If `sufficientlyDefined
+   = false`, the concept may be defined only by IS-A. Look up a fully-defined
+   representative concept from the same domain to discover attributes.
+3. **`=` is exact match on the value side — not subsumptive.** Filtering by
+   `363698007 = 321667001` (respiratory tract) does **not** match concepts
+   coded to `39607008` (lung structure) even though lung is a subtype of
+   respiratory tract. Always look up a representative target concept to find
+   the exact value ID used in your domain.
+4. **Role groups are flattened.** Combined attributes within a single role
+   group are not co-enforced in filters. Stacked filters apply as independent
+   AND conditions across all role groups.
+5. **No `has-symptom` attribute exists.** For symptom/association queries
+   use the [Translating Clinical Questions](#translating-clinical-questions)
+   table.
+
+---
+
 ## Workflow
 
 ### Step 1 — Identify the pivot concept
@@ -189,8 +206,19 @@ search_snomed(query="infarct morphology")
 search_snomed(query="staphylococcus aureus organism")
 ```
 
-Pick the best match. Body structures usually have semantic tag `(body structure)`,
-organisms have `(organism)`, morphologies have `(morphologic abnormality)`.
+Select the top match whose `semanticTag` aligns with your domain:
+
+| Domain | Expected `semanticTag` |
+|---|---|
+| Anatomical location | `body structure` |
+| Organism / pathogen | `organism` |
+| Morphologic change | `morphologic abnormality` |
+| Finding / symptom | `finding` |
+| Disease / disorder | `disorder` |
+| Substance / drug | `substance` |
+
+If the top match has an unexpected tag, call `codesystem_lookup` on it before
+using it as a pivot — the display may be correct even if the tag differs.
 
 ### Step 2 — Confirm with `codesystem_lookup`
 
@@ -258,15 +286,9 @@ results — see [Translating Clinical Questions](#translating-clinical-questions
 
 Pass this to `valueset_expand`.
 
-> **⚠️ pi limitation:** In the pi agent the `valueset` parameter is always
-> received as a string due to `$ref` type serialization, causing
-> `valueset: must be object`. **Do not retry. Do not offer alternatives.
-> Immediately run `reasonhub-skills expand` with the ValueSet JSON.**
-> If the CLI is missing:
-> `curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/bin/reasonhub-skills -o ~/.local/bin/reasonhub-skills && chmod +x ~/.local/bin/reasonhub-skills`
->
-> **⛔ Do not read credentials yourself.** Do not read config files or env
-> vars to build a curl command with a token. Use `reasonhub-skills expand`.
+> **⚠️ Expand failures:** See [**`reasonhub-expand-mechanics`**](../reasonhub-expand-mechanics/SKILL.md)
+> for expand failures, `reasonhub-skills expand` CLI fallback,
+> and credential guidance.
 
 ### Step 5 — Refine with stacked filters
 
@@ -355,9 +377,9 @@ Captures complication concepts encoded with "Due to" (e.g., retinopathy/neuropat
 
 ## Translating Clinical Questions
 
-Natural language clinical questions often don't map cleanly to a single
-SNOMED attribute. Use this table to pick the best strategy, with fallbacks
-when attribute coverage is thin.
+Natural language clinical questions do not always map to a single
+SNOMED attribute. Use this table to select the strategy, with explicit
+fallbacks when attribute coverage is thin.
 
 | Clinical question | Best strategy | Coverage | Fallback |
 |---|---|---|---|
@@ -393,7 +415,7 @@ modelled in SNOMED:
 
 **When `associated with` returns thin results, use these strategies instead:**
 
-1. **Subtypes** — the condition's descendants often *are* its more specific
+1. **Subtypes** — the condition's descendants are its more specific
    presentations:
    ```json
    { "property": "concept", "op": "is-a", "value": "<condition_id>" }
@@ -609,16 +631,4 @@ codesystem_filter_properties(system="http://snomed.info/sct")
 
 ---
 
-## Important Constraints
 
-- Only **active** relationships are stored. Inactive concept attributes are
-  excluded.
-- **Primitive concepts** (`sufficientlyDefined = false`) may have no or fewer
-  attribute relationships — they're defined only by IS-A.
-- Relationship **role groups** are flattened during import. Combined attributes
-  within a single role group (e.g., "finding site + associated morphology")
-  are not enforced together in filters.
-- No `has-symptom` attribute exists in SNOMED. Use the
-  [Translating Clinical Questions](#translating-clinical-questions) section
-  for the recommended strategies, including `associated with` filters,
-  finding-site pivots, and hierarchy traversal.

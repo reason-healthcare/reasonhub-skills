@@ -7,7 +7,7 @@ set -e
 
 REPO="https://github.com/reason-healthcare/reasonhub-skills"
 RAW="https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main"
-SKILLS="reasonhub-snomed-semantic reasonhub-terminology-crossmap reasonhub-valueset-properties"
+SKILLS="reasonhub-snomed-semantic reasonhub-terminology-crossmap reasonhub-clinical-search reasonhub-expand-mechanics"
 CLI_NAME="reasonhub-skills"
 CLI_DEST="$HOME/.local/bin"
 

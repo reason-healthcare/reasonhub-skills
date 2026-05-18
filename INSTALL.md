@@ -145,7 +145,8 @@ individually.
 mkdir -p ~/.claude/skills
 ln -s ~/reasonhub-skills/reasonhub-snomed-semantic      ~/.claude/skills/reasonhub-snomed-semantic
 ln -s ~/reasonhub-skills/reasonhub-terminology-crossmap ~/.claude/skills/reasonhub-terminology-crossmap
-ln -s ~/reasonhub-skills/reasonhub-valueset-properties  ~/.claude/skills/reasonhub-valueset-properties
+ln -s ~/reasonhub-skills/reasonhub-clinical-search      ~/.claude/skills/reasonhub-clinical-search
+ln -s ~/reasonhub-skills/reasonhub-expand-mechanics     ~/.claude/skills/reasonhub-expand-mechanics
 ```
 
 **MCP config:** `~/.claude/mcp.json` (user-level) or `.mcp.json` in your
@@ -157,7 +158,8 @@ project root.
 mkdir -p .claude/skills
 ln -s ~/reasonhub-skills/reasonhub-snomed-semantic      .claude/skills/reasonhub-snomed-semantic
 ln -s ~/reasonhub-skills/reasonhub-terminology-crossmap .claude/skills/reasonhub-terminology-crossmap
-ln -s ~/reasonhub-skills/reasonhub-valueset-properties  .claude/skills/reasonhub-valueset-properties
+ln -s ~/reasonhub-skills/reasonhub-clinical-search      .claude/skills/reasonhub-clinical-search
+ln -s ~/reasonhub-skills/reasonhub-expand-mechanics     .claude/skills/reasonhub-expand-mechanics
 ```
 
 ---
