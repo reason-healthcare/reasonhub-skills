@@ -137,10 +137,9 @@ your config above:
 
 ## Claude Desktop
 
-Claude Desktop supports MCP servers but has no native skill-loading
-mechanism (no `~/.claude/skills/` discovery). The MCP tools are available
-in every conversation; the skill instructions require a one-time Project
-setup.
+Claude Desktop supports MCP servers but has no native skill-file discovery.
+Installation is two steps: configure the MCP server, then load the skills
+via a Project.
 
 ### Step 1 — Configure the MCP server
 
@@ -170,48 +169,36 @@ Add the `mcpServers` block:
 }
 ```
 
-Restart Claude Desktop after saving. Verify the ReasonHub tools appear
-under the MCP tools icon (hammer) in a new conversation.
+Restart Claude Desktop. Verify the ReasonHub tools appear under the MCP
+tools icon (hammer) in a new conversation.
 
 ### Step 2 — Load skills via a Project
 
-Claude Desktop **Projects** let you attach custom instructions that are
-included in every conversation. This is how skill content is loaded.
+1. Download the pre-built instructions file:
 
-1. In Claude Desktop, create a new Project (sidebar → **New Project**).
-2. Open **Project Instructions** (gear icon).
-3. For each skill you want active, paste the full contents of its
-   `SKILL.md` (without the YAML frontmatter block). Separate skills with
-   a horizontal rule (`---`).
+   ```bash
+   curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/dist/claude-desktop.md \
+     -o reasonhub-skills.md
+   ```
 
-Recommended contents for a clinical terminology project:
+2. In Claude Desktop, create or open a Project (sidebar → **New Project**).
 
-```
-[contents of reasonhub-snomed-semantic/SKILL.md]
----
-[contents of reasonhub-clinical-search/SKILL.md]
----
-[contents of reasonhub-terminology-crossmap/SKILL.md]
----
-[contents of reasonhub-expand-mechanics/SKILL.md]
-```
+3. Open **Project Instructions** (gear icon) and paste the entire contents
+   of `reasonhub-skills.md`.
 
-> **Token budget:** Claude Desktop project instructions share the context
-> window with your conversation. Load only the skills relevant to the
-> project. For focused work (e.g., SNOMED only), paste just
-> `reasonhub-snomed-semantic` and `reasonhub-expand-mechanics`.
+All skills are now active for every conversation in that Project.
 
 ### Keeping skills up to date
 
-Project instructions are static text — they do not auto-update when the
-skills repo changes. To update:
+Re-download the file and re-paste whenever you want the latest version:
 
 ```bash
-# Pull the latest skill content
-cd ~/reasonhub-skills && git pull
-
-# Then re-paste the updated SKILL.md files into your Project Instructions
+curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/main/dist/claude-desktop.md \
+  -o reasonhub-skills.md
 ```
+
+> **Generating locally:** if you have the repo cloned, run `make dist`
+> to regenerate `dist/claude-desktop.md` from the current skill sources.
 
 ---
 
