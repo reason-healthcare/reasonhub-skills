@@ -174,6 +174,9 @@ Skills call ReasonHub MCP tools directly. To test a skill:
    /skill:reasonhub-snomed-semantic
    ```
 
+   **Claude Desktop:** no `/skill:` command. Open a Project with the skill
+   content in its instructions, then start a conversation in that Project.
+
 3. Run through the worked examples in the skill's `## Examples` section and
    verify the tool calls and results look correct.
 

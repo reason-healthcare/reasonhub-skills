@@ -72,7 +72,11 @@ curl -fsSL https://raw.githubusercontent.com/reason-healthcare/reasonhub-skills/
 
 Installs both `SKILL.md` files and the `reasonhub-skills` CLI to `~/.local/bin/`.
 
-For per-agent config file paths - see **[INSTALL.md](./INSTALL.md)**.
+For per-agent config file paths — see **[INSTALL.md](./INSTALL.md)**.
+
+> **Claude Desktop** does not support skill-file discovery. Configure the
+> MCP server in `claude_desktop_config.json` and load skill content via
+> a Project's custom instructions. See [INSTALL.md → Claude Desktop](./INSTALL.md#claude-desktop).
 
 ## Skills
 
